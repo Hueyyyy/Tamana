@@ -43,14 +43,13 @@ export const EditProjectForm = ({
   initialValues,
 }: EditProjectFormProps) => {
   const { mutate, isPending } = useUpdateProject();
-  const { mutate: deleteProject } =
-    useDeleteProject();
+  const { mutate: deleteProject } = useDeleteProject();
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const [DeleteDialog, confirmDelete] = useConfirm({
     title: 'Delete Project',
     message:
-      'Are you sure you want to delete this project? This action cannot be undone.',
+      'Are you sure you want to delete this project? This action will also delete all the tasks associated with this project.',
     variant: 'destructive',
   });
   const form = useForm<z.infer<typeof updateProjectSchema>>({

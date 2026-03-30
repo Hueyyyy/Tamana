@@ -68,7 +68,11 @@ export const WorkspaceIdClient = () => {
     <div className="h-full flex flex-col space-y-4">
       <Analytics data={analytics} />
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <TaskList data={tasks.documents} total={tasks.total} />
+        <TaskList
+          data={tasks.documents}
+          total={tasks.total}
+          disableCreate={projects.total === 0}
+        />
         <ProjectList data={projects.documents} total={projects.total} />
         <MemberList data={members.documents} total={members.total} />
       </div>
@@ -79,9 +83,10 @@ export const WorkspaceIdClient = () => {
 interface TaskListProp {
   data: Task[];
   total: number;
+  disableCreate?: boolean;
 }
 
-export const TaskList = ({ data, total }: TaskListProp) => {
+export const TaskList = ({ data, total, disableCreate }: TaskListProp) => {
   const { open: createTask } = useCreateTaskModal();
   const workspaceId = useWorkspaceId();
 
@@ -90,7 +95,12 @@ export const TaskList = ({ data, total }: TaskListProp) => {
       <div className="bg-muted rounded-lg p-4">
         <div className="flex items-center justify-between">
           <p className="text-lg font-semibold">Task ({total})</p>
-          <Button onClick={() => createTask()} variant={'muted'} size={'icon'}>
+          <Button
+            onClick={() => createTask()}
+            variant={'muted'}
+            size={'icon'}
+            disabled={disableCreate}
+          >
             <PlusIcon className="size-4 text-neutral-400" />
           </Button>
         </div>

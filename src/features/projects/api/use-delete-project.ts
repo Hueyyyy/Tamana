@@ -35,6 +35,12 @@ export const useDeleteProject = () => {
       queryClient.invalidateQueries({
         queryKey: ['project', data.$id],
       })
+      queryClient.invalidateQueries({
+        queryKey: ['tasks'],
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['workspace-analytics'],
+      })
     },
     onError: () => {
       toast.error(`Failed to delete project`)

@@ -393,6 +393,16 @@ const app = new Hono()
         if (!member) {
           return c.json({ error: 'Unauthorized' }, 401)
         }
+
+        const tasks = await databases.listDocuments(
+            DATABASE_ID,
+            TASKS_ID,
+            [Query.equal('projectId', projectId)]
+        )
+
+        await Promise.all(
+            tasks.documents.map((task) => databases.deleteDocument(DATABASE_ID, TASKS_ID, task.$id))
+        )
     
         await databases.deleteDocument(DATABASE_ID, PROJECTS_ID, projectId)
     
