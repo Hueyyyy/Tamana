@@ -32,9 +32,10 @@ interface DataKanbanProps {
   onChange: (
     tasks: { $id: string; status: TaskStatus; position: number }[],
   ) => void;
+  projectId?: string;
 }
 
-export const DataKanban = ({ data, onChange }: DataKanbanProps) => {
+export const DataKanban = ({ data, onChange, projectId }: DataKanbanProps) => {
   const [tasks, setTasks] = useState<TasksState>(() => {
     const initialTasks: TasksState = {
       [TaskStatus.BACKLOG]: [],
@@ -176,6 +177,7 @@ export const DataKanban = ({ data, onChange }: DataKanbanProps) => {
               <KanbanColumnHeader
                 board={board}
                 taskCount={tasks[board].length}
+                projectId={projectId}
               />
               <Droppable droppableId={board}>
                 {(provided) => (

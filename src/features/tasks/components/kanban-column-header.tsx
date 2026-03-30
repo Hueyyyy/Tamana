@@ -23,6 +23,7 @@ import { useCreateTaskModal } from '../hooks/use-create-task-modal';
 interface KanbanColumnHeaderProps {
   board: TaskStatus;
   taskCount: number;
+  projectId?: string;
 }
 
 const statusIconMap: Record<TaskStatus, React.ReactNode> = {
@@ -44,8 +45,10 @@ const statusIconMap: Record<TaskStatus, React.ReactNode> = {
 export const KanbanColumnHeader = ({
   board,
   taskCount,
+  projectId,
 }: KanbanColumnHeaderProps) => {
   const icon = statusIconMap[board];
+
   const { open } = useCreateTaskModal();
   return (
     <div className="px-2 py-1.5 flex items-center justify-between">
@@ -60,7 +63,7 @@ export const KanbanColumnHeader = ({
         variant="ghost"
         size="icon"
         className="size-5"
-        onClick={() => open(board)}
+        onClick={() => open(board, projectId)}
       >
         <PlusIcon className="size-4" />
       </Button>

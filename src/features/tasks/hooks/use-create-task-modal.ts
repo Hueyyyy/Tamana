@@ -1,4 +1,4 @@
-import { useQueryState, parseAsBoolean, parseAsStringEnum } from 'nuqs'
+import { useQueryState, parseAsBoolean, parseAsStringEnum, parseAsString } from 'nuqs'
 import { TaskStatus } from '../types'
 
 export const useCreateTaskModal = () => {
@@ -12,14 +12,21 @@ export const useCreateTaskModal = () => {
     parseAsStringEnum(Object.values(TaskStatus)).withOptions({ clearOnDefault: true }),
   )
 
-  const open = (initialStatus?: TaskStatus) => {
+  const [projectId, setProjectId] = useQueryState(
+    'project-id',
+    parseAsString.withOptions({ clearOnDefault: true }),
+  )
+
+  const open = (initialStatus?: TaskStatus, projectId?: string) => {
     setIsOpen(true)
     setInitialStatus(initialStatus ?? null)
+    setProjectId(projectId ?? null)
   }
   const close = () => {
     setIsOpen(false)
     setInitialStatus(null)
+    setProjectId(null)
   }
 
-  return { isOpen, open, close, setIsOpen, initialStatus }
+  return { isOpen, open, close, setIsOpen, initialStatus, projectId }
 }

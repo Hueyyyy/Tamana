@@ -93,7 +93,7 @@ export const TaskViewSwitcher = ({
           <Button
             size={'sm'}
             className="w-full lg:w-auto"
-            onClick={() => open()}
+            onClick={() => open(undefined, paramProjectId)}
           >
             <Plus className="size-4" />
             New
@@ -121,6 +121,7 @@ export const TaskViewSwitcher = ({
                 <DataKanban
                   data={tasks?.documents ?? []}
                   onChange={onKanbanChange}
+                  projectId={paramProjectId}
                 />
               </p>
             </TabsContent>
