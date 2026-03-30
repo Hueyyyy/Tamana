@@ -3,7 +3,6 @@ import { Hono } from 'hono'
 import {
     DATABASE_ID,
     MEMBERS_ID,
-    WORKSPACES_ID,
 } from '@/config'
 
 //Libs
