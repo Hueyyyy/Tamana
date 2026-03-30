@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator'
 
 import { loginSchema, signupSchema } from '../schemas'
 import { createAdminClient } from '@/lib/appwrite'
-import { ID } from 'node-appwrite'
+import { ID, Query } from 'node-appwrite'
 import { deleteCookie, setCookie } from 'hono/cookie'
 import { AUTH_COOKIE } from '../constants'
 import { sessionMiddleware } from '@/lib/session-middleware'
@@ -20,6 +20,7 @@ const app = new Hono()
     const { email, password } = c.req.valid('json')
 
     const { account } = await createAdminClient()
+
     const session = await account.createEmailPasswordSession(email, password)
 
     setCookie(c, AUTH_COOKIE, session.secret, {
@@ -35,20 +36,38 @@ const app = new Hono()
   .post('/register', zValidator('json', signupSchema), async (c) => {
     const { name, email, password } = c.req.valid('json')
 
-    const { account } = await createAdminClient()
-    await account.create(ID.unique(), email, password, name)
+    const { account, users } = await createAdminClient()
 
-    const session = await account.createEmailPasswordSession(email, password)
+    try {
+        const existingUsers = await users.list([
+            Query.equal('email', [email])
+        ]);
 
-    setCookie(c, AUTH_COOKIE, session.secret, {
-      path: '/',
-      httpOnly: true,
-      secure: true,
-      sameSite: 'strict',
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-    })
+        if (existingUsers.total > 0) {
+            return c.json({ error: 'This email is already registered' }, 409);
+        }
 
-    return c.json({ success: true })
+        await account.create(ID.unique(), email, password, name);
+        
+        const session = await account.createEmailPasswordSession(email, password);
+
+        setCookie(c, AUTH_COOKIE, session.secret, {
+            path: '/',
+            httpOnly: true,
+            secure: true,
+            sameSite: 'strict',
+            maxAge: 60 * 60 * 24 * 30,
+        });
+
+        return c.json({ success: true });
+
+    } catch (error: any) {
+        if (error.code === 401) {
+            return c.json({ error: 'Authentication failed. Please check if Email/Password login is enabled in Appwrite.' }, 401);
+        }
+
+        return c.json({ error: error.message || "Internal Server Error" }, 500);
+    }
   })
   .post('/logout', sessionMiddleware, async (c) => {
     const account = c.get('account')

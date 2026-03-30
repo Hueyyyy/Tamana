@@ -19,6 +19,12 @@ export const useSignUp = () => {
       const response = await client.api.auth.register['$post']({ json })
 
       if (!response.ok) {
+        if (response.status === 409) {
+          const errorData = await response.json()
+          if ('error' in errorData && errorData.error === 'This email is already registered') {
+            throw new Error('This email is already registered')
+          }
+        }
         throw new Error('Failed to register')
       }
 
@@ -31,8 +37,8 @@ export const useSignUp = () => {
         queryKey: ['current'],
       })
     },
-    onError: () => {
-      toast.error(`Failed to register`)
+    onError: (error) => {
+      toast.error(error.message)
     },
   })
 
