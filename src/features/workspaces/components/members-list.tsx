@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { ArrowLeftIcon, Crown, MoreVerticalIcon, UserStar } from 'lucide-react';
+import { ArrowLeftIcon, Crown, MoreVerticalIcon } from 'lucide-react';
 import { DottedSeparator } from '@/components/dotted-separator';
 import { MemberAvatar } from '@/features/members/components/member-avatar';
 import { Separator } from '@/components/ui/separator';
