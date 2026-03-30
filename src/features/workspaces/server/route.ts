@@ -296,7 +296,6 @@ const app = new Hono()
         {
           name,
           imageUrl: imageUrl,
-          userId: user.$id,
           inviteCode: generateInviteCode(10),
         },
       )
@@ -305,6 +304,7 @@ const app = new Hono()
         userId: user.$id,
         workspaceId: workspace.$id,
         role: MemberRole.ADMIN,
+        isOwner: true,
       })
 
       return c.json({ data: workspace })
@@ -378,7 +378,7 @@ const app = new Hono()
       workspaceId,
     })
 
-    if (!member || member.role !== MemberRole.ADMIN) {
+    if (!member || !member.isOwner) {
       return c.json({ error: 'Unauthorized' }, 401)
     }
 
@@ -484,6 +484,7 @@ const app = new Hono()
         userId: user.$id,
         workspaceId,
         role: MemberRole.MEMBER,
+        isOwner: false,
       })
 
       return c.json({ data: workspace })

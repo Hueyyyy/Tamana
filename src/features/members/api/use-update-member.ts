@@ -16,11 +16,10 @@ type RequestType = InferRequestType<
 export const useUpdateMember = () => {
   const queryClient = useQueryClient()
   const mutation = useMutation<ResponseType, Error, RequestType>({
-    mutationFn: async ({ param, json, query }) => {
+    mutationFn: async ({ param, json }) => {
       const response = await client.api.members[':memberId']['$patch']({
         param,
-        json,
-        query
+        json
       })
 
       if (!response.ok) {

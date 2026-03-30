@@ -67,9 +67,8 @@ const app = new Hono()
 
         return c.json({data: {...member, name: member.name || member.email}})
     })
-    .delete('/:memberId', sessionMiddleware, zValidator('query', z.object({ workspaceId: z.string() })), async (c) => {
+    .delete('/:memberId', sessionMiddleware, async (c) => {
         const { memberId } = c.req.param();
-        const { workspaceId } = c.req.valid('query');
         const user = c.get('user');
         const databases = c.get('databases');
 
@@ -82,7 +81,7 @@ const app = new Hono()
         const allMembersInWorkspace = await databases.listDocuments(
             DATABASE_ID,
             MEMBERS_ID,
-            [Query.equal('workspaceId', workspaceId)]
+            [Query.equal('workspaceId', memberToDelete.workspaceId)]
         );
 
         const member = await getMember({
@@ -91,17 +90,11 @@ const app = new Hono()
             userId: user.$id
         })
 
-        const workspace = await databases.getDocument(
-            DATABASE_ID,
-            WORKSPACES_ID,
-            workspaceId
-        );
-
         if (!member) {
             return c.json({error: 'Unauthorized'}, 401)
         }
 
-        if (memberToDelete.userId === workspace.userId) {
+        if (memberToDelete.isOwner) {
             return c.json({error: 'Cannot delete owner'}, 400)
         }
 
@@ -124,10 +117,9 @@ const app = new Hono()
             $id: memberId
         }})
     })
-    .patch('/:memberId', sessionMiddleware, zValidator('json', z.object({role: z.nativeEnum(MemberRole)})), zValidator('query', z.object({ workspaceId: z.string() })), async (c) => {
+    .patch('/:memberId', sessionMiddleware, zValidator('json', z.object({role: z.nativeEnum(MemberRole)})), async (c) => {
         const { memberId } = c.req.param();
         const { role } = c.req.valid('json');
-        const { workspaceId } = c.req.valid('query');
         const user = c.get('user');
         const databases = c.get('databases');
 
@@ -151,12 +143,6 @@ const app = new Hono()
 
         const allAdminsInWorkspace = allMembersInWorkspace.documents.filter((member) => member.role === MemberRole.ADMIN);
 
-        const workspace = await databases.getDocument(
-            DATABASE_ID,
-            WORKSPACES_ID,
-            workspaceId
-        );
-
         if (!member) {
             return c.json({error: 'Unauthorized'}, 401)
         }
@@ -165,7 +151,7 @@ const app = new Hono()
             return c.json({error: 'Unauthorized'}, 401)
         }
 
-        if (memberToUpdate.userId === workspace.userId) {
+        if (memberToUpdate.isOwner) {
             return c.json({error: 'Cannot update owner'}, 400)
         }
 

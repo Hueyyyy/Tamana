@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { ArrowLeftIcon, MoreVerticalIcon } from 'lucide-react';
+import { ArrowLeftIcon, Crown, MoreVerticalIcon, UserStar } from 'lucide-react';
 import { DottedSeparator } from '@/components/dotted-separator';
 import { MemberAvatar } from '@/features/members/components/member-avatar';
 import { Separator } from '@/components/ui/separator';
@@ -48,7 +48,6 @@ export const MemberList = () => {
     updateMember({
       param: { memberId },
       json: { role },
-      query: { workspaceId },
     });
   };
 
@@ -59,7 +58,6 @@ export const MemberList = () => {
     deleteMember(
       {
         param: { memberId },
-        query: { workspaceId },
       },
       {
         onSuccess: () => {
@@ -94,7 +92,13 @@ export const MemberList = () => {
                 fallbackClassName="text-lg"
               />
               <div className="flex flex-col">
-                <p className="text-sm font-medium">{member.name}</p>
+                <div className="flex items-center gap-x-1">
+                  <p className="text-sm font-medium">{member.name}</p>
+                  {member.isOwner && <Crown className="size-4" />}
+                  {member.role === MemberRole.ADMIN && (
+                    <span className="text-xs text-muted-foreground">Admin</span>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground">{member.email}</p>
               </div>
               <DropdownMenu>

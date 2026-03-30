@@ -9,4 +9,5 @@ export type Member = Models.Document & {
   role: MemberRole;
   workspaceId: string;
   userId: string;
+  isOwner: boolean;
 }
