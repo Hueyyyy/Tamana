@@ -1,0 +1,54 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { InferRequestType, InferResponseType } from 'hono'
+
+import { client } from '@/lib/rpc'
+
+import { toast } from 'sonner'
+
+type ResponseType = InferResponseType<
+  (typeof client.api.workspaces)[':workspaceId']['join']['$post'],
+  200
+>
+type RequestType = InferRequestType<
+  (typeof client.api.workspaces)[':workspaceId']['join']['$post']
+>
+
+export const useJoinWorkspace = () => {
+  const queryClient = useQueryClient()
+  const mutation = useMutation<ResponseType, Error, RequestType>({
+    mutationFn: async ({ param, json }) => {
+      const response = await client.api.workspaces[':workspaceId']['join'][
+        '$post'
+      ]({
+        param,
+        json,
+      })
+
+      if (!response.ok) {
+        if (response.status === 400) {
+          const errorData = await response.json()
+          if ('error' in errorData && errorData.error === 'Already a member') {
+            throw new Error('Already a member')
+          }
+        }
+        throw new Error('Failed to join workspace')
+      }
+
+      return await response.json()
+    },
+    onSuccess: ({ data }) => {
+      toast.success('Joined workspace successfully!')
+      queryClient.invalidateQueries({
+        queryKey: ['workspaces'],
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['workspace', data.$id],
+      })
+    },
+    onError: (error) => {
+      toast.error(error.message)
+    },
+  })
+
+  return mutation
+}
