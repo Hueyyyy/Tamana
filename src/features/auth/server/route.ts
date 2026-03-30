@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 
-import { loginSchema, signupSchema } from '../schemas'
+import { serverLoginSchema, serverSignupSchema } from '../schemas'
 import { createAdminClient } from '@/lib/appwrite'
 import { ID, Query } from 'node-appwrite'
 import { deleteCookie, setCookie } from 'hono/cookie'
@@ -16,14 +16,15 @@ const app = new Hono()
       data: user,
     })
   })
-  .post('/login', zValidator('json', loginSchema), async (c) => {
+  .post('/login', zValidator('json', serverLoginSchema), async (c) => {
     const { email, password } = c.req.valid('json')
 
     const { account } = await createAdminClient()
 
-    const session = await account.createEmailPasswordSession(email, password)
+    try {
+      const session = await account.createEmailPasswordSession(email, password)
 
-    setCookie(c, AUTH_COOKIE, session.secret, {
+      setCookie(c, AUTH_COOKIE, session.secret, {
       path: '/',
       httpOnly: true,
       secure: true,
@@ -32,8 +33,18 @@ const app = new Hono()
     })
 
     return c.json({ success: true })
+    } catch (err) {
+      const error = err as Error & { code?: number };
+      if (error.code === 401) {
+        return c.json({ error: 'Authentication failed. Please check your credentials.' }, 401);
+      }
+
+      return c.json({ error: error.message || "Internal Server Error" }, 500);
+    }
+
+    
   })
-  .post('/register', zValidator('json', signupSchema), async (c) => {
+  .post('/register', zValidator('json', serverSignupSchema), async (c) => {
     const { name, email, password } = c.req.valid('json')
 
     const { account, users } = await createAdminClient()
@@ -61,9 +72,10 @@ const app = new Hono()
 
         return c.json({ success: true });
 
-    } catch (error: any) {
+    } catch (err) {
+        const error = err as Error & { code?: number };
         if (error.code === 401) {
-            return c.json({ error: 'Authentication failed. Please check if Email/Password login is enabled in Appwrite.' }, 401);
+            return c.json({ error: 'Authentication failed. Please check your credentials.' }, 401);
         }
 
         return c.json({ error: error.message || "Internal Server Error" }, 500);

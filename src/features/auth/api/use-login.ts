@@ -17,6 +17,12 @@ export const useLogin = () => {
       const response = await client.api.auth.login['$post']({ json })
 
       if (!response.ok) {
+        if (response.status === 401) {
+          const errorData = await response.json()
+          if ('error' in errorData && errorData.error === 'Authentication failed. Please check your credentials.') {
+            throw new Error('Authentication failed. Please check your credentials.')
+          }
+        }
         throw new Error('Failed to login')
       }
 

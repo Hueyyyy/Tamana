@@ -1,36 +1,37 @@
-'use client'
+'use client';
 
 //Assets
-import { FcGoogle } from 'react-icons/fc'
-import { FaGithub } from 'react-icons/fa'
+import { FcGoogle } from 'react-icons/fc';
+import { FaGithub } from 'react-icons/fa';
 
 //Components
-import { DottedSeparator } from '@/components/dotted-separator'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { DottedSeparator } from '@/components/dotted-separator';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
   Form,
   FormField,
   FormItem,
   FormControl,
   FormMessage,
-} from '@/components/ui/form'
+} from '@/components/ui/form';
 
 //Hooks
-import { useForm } from 'react-hook-form'
-import { useSignUp } from '../api/use-signup'
+import { useForm } from 'react-hook-form';
+import { useSignUp } from '../api/use-signup';
 
 //Helpers
-import { z } from 'zod'
-import { zodResolver } from '@hookform/resolvers/zod'
-import Link from 'next/link'
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import Link from 'next/link';
 
 //Schemas
-import { signupSchema } from '../schemas'
+import { signupSchema } from '../schemas';
+import { hashPassword } from '@/lib/utils';
 
 const SignUpCard = () => {
-  const { mutate, isPending } = useSignUp()
+  const { mutate, isPending } = useSignUp();
 
   const form = useForm<z.infer<typeof signupSchema>>({
     resolver: zodResolver(signupSchema),
@@ -39,11 +40,12 @@ const SignUpCard = () => {
       email: '',
       password: '',
     },
-  })
+  });
 
-  const onSubmit = (values: z.infer<typeof signupSchema>) => {
-    mutate({ json: values })
-  }
+  const onSubmit = async (values: z.infer<typeof signupSchema>) => {
+    const hashedPassword = await hashPassword(values.password);
+    mutate({ json: { ...values, password: hashedPassword } });
+  };
 
   return (
     <Card className="w-full h-full md:w-[487px] border-none shadow-none">
@@ -141,7 +143,7 @@ const SignUpCard = () => {
         </p>
       </CardContent>
     </Card>
-  )
-}
+  );
+};
 
-export default SignUpCard
+export default SignUpCard;

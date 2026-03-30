@@ -24,6 +24,11 @@ export const useSignUp = () => {
           if ('error' in errorData && errorData.error === 'This email is already registered') {
             throw new Error('This email is already registered')
           }
+        } else if (response.status === 401) {
+          const errorData = await response.json()
+          if ('error' in errorData && errorData.error === 'Authentication failed. Please check your credentials.') {
+            throw new Error('Authentication failed. Please check your credentials.')
+          }
         }
         throw new Error('Failed to register')
       }

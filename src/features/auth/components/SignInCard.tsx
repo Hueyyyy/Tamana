@@ -32,6 +32,9 @@ import { loginSchema } from '../schemas';
 //Libs
 import { signUpWithGithub, signUpWithGoogle } from '@/lib/oauth';
 
+//Utils
+import { hashPassword } from '@/lib/utils';
+
 const SignInCard = () => {
   const { mutate, isPending } = useLogin();
 
@@ -43,9 +46,10 @@ const SignInCard = () => {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof loginSchema>) => {
+  const onSubmit = async (values: z.infer<typeof loginSchema>) => {
+    const hashedPassword = await hashPassword(values.password);
     mutate({
-      json: values,
+      json: { ...values, password: hashedPassword },
     });
   };
 
