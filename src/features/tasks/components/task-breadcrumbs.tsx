@@ -53,23 +53,25 @@ export const TaskBreadcrumbs = ({ project, task }: TaskBreadcrumbsProps) => {
   };
 
   return (
-    <div className="flex items-center gap-x-2">
+    <div className="flex items-center gap-x-2 min-w-0">
       <ConfirmDialog />
-      <ProjectAvatar
-        name={project.name}
-        image={project.imageUrl}
-        className="size-6 lg:size-8"
-      />
-      <Link
-        href={`/workspaces/${workspaceId}/projects/${project.$id}`}
-        className="text-muted-foreground text-sm"
-      >
-        <p className="text-sm lg:text-lg font-semibold text-muted-foreground hover:opacity-75 transition">
-          {project.name}
-        </p>
-      </Link>
+      <div className="flex items-center gap-x-2 max-w-[200px]">
+        <ProjectAvatar
+          name={project.name}
+          image={project.imageUrl}
+          className="size-6 lg:size-8"
+        />
+        <Link
+          href={`/workspaces/${workspaceId}/projects/${project.$id}`}
+          className="text-muted-foreground text-sm min-w-0 flex-1"
+        >
+          <p className="text-sm lg:text-lg font-semibold text-muted-foreground hover:opacity-75 transition truncate">
+            {project.name}
+          </p>
+        </Link>
+      </div>
       <ChevronRight className="size-4 lg:size-5 text-muted-foreground" />
-      <p className="text-sm lg:text-lg font-semibold">{task.name}</p>
+      <p className="text-sm lg:text-lg font-semibold truncate">{task.name}</p>
       <Button
         className="ml-auto"
         variant={'destructive'}

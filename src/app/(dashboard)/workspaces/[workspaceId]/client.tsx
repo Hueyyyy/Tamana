@@ -113,7 +113,7 @@ export const TaskList = ({ data, total, disableCreate }: TaskListProp) => {
                   <CardContent className="p-4">
                     <p className="text-lg font-medium truncate">{task.name}</p>
                     <div className="flex items-center gap-x-2">
-                      <p>{task.project?.name}</p>
+                      <p className="truncate">{task.project?.name}</p>
                       <div className="size-1 rounded-full bg-neutral-300" />
                       <div className="flex items-center gap-x-1 text-sm text-muted-foreground">
                         <CalendarIcon className="size-3 mr-1" />
@@ -214,14 +214,14 @@ export const MemberList = ({ data, total }: MemberListProp) => {
         <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {data.map((member) => (
             <li key={member.$id}>
-              <Card className="shadown-none rounded-lg overflow-hidden">
-                <CardContent className="p-3 flex flex-col items-center gap-x-2">
+              <Card className="shadown-none rounded-lg hover:opacity-75 transition">
+                <CardContent className="p-4 flex flex-col items-center gap-2 overflow-hidden">
                   <MemberAvatar name={member.name} className="size-12" />
-                  <div className="flex flex-col items-center overflow-hidden">
-                    <p className="text-lg font-medium line-clamp-1">
+                  <div className="flex flex-col items-center overflow-hidden w-full">
+                    <p className="text-lg font-medium truncate w-full text-center">
                       {member.name}
                     </p>
-                    <p className="text-sm text-muted-foreground line-clamp-1">
+                    <p className="text-sm text-muted-foreground truncate w-full text-center">
                       {member.email}
                     </p>
                   </div>

@@ -26,10 +26,9 @@ export const ProjectIdClient = () => {
   const { data: project, isLoading: isLoadingProject } = useGetProject({
     projectId,
   });
-  const { data: projectAnalytics } =
-    useGetProjectAnalytics({
-      projectId,
-    });
+  const { data: projectAnalytics } = useGetProjectAnalytics({
+    projectId,
+  });
 
   if (isLoadingProject) return <PageLoader />;
 
@@ -37,14 +36,14 @@ export const ProjectIdClient = () => {
 
   return (
     <div className="flex flex-col gap-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-x-2">
+      <div className="flex items-center justify-between min-w-0">
+        <div className="flex items-center gap-x-2 min-w-0 flex-1">
           <ProjectAvatar
             name={project.name}
             image={project.imageUrl}
             className="size-8"
           />
-          <p className="text-lg font-semibold">{project.name}</p>
+          <p className="text-lg font-semibold truncate">{project.name}</p>
         </div>
         <div>
           <Button variant={'secondary'} size={'sm'} asChild>

@@ -65,6 +65,8 @@ export const CreateTaskForm = ({
     resolver: zodResolver(createTaskSchema),
     defaultValues: {
       workspaceId,
+      projectId,
+      status: initialStatus,
     },
   });
 
@@ -102,7 +104,7 @@ export const CreateTaskForm = ({
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Task Name</FormLabel>
+                    <FormLabel className="text-black">Task Name</FormLabel>
                     <FormControl>
                       <Input {...field} placeholder="Enter task name" />
                     </FormControl>
@@ -115,7 +117,7 @@ export const CreateTaskForm = ({
                 name="dueDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Due Date</FormLabel>
+                    <FormLabel className="text-black">Due Date</FormLabel>
                     <FormControl>
                       <DatePicker {...field} />
                     </FormControl>
@@ -128,7 +130,7 @@ export const CreateTaskForm = ({
                 name="assigneeId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Assignee</FormLabel>
+                    <FormLabel className="text-black">Assignee</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
@@ -139,15 +141,15 @@ export const CreateTaskForm = ({
                         </SelectTrigger>
                       </FormControl>
                       <FormMessage />
-                      <SelectContent>
+                      <SelectContent className="w-[var(--radix-select-trigger-width)]">
                         {memberOptions.map((member) => (
                           <SelectItem key={member.id} value={member.id}>
-                            <div className="flex items-center gap-x-2">
+                            <div className="flex items-center gap-x-2 min-w-0">
                               <MemberAvatar
                                 name={member.name}
-                                className="size-6"
+                                className="size-6 shrink-0"
                               />
-                              {member.name}
+                              <span className="truncate">{member.name}</span>
                             </div>
                           </SelectItem>
                         ))}
@@ -161,7 +163,7 @@ export const CreateTaskForm = ({
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Status</FormLabel>
+                    <FormLabel className="text-black">Status</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={initialStatus}
@@ -194,7 +196,7 @@ export const CreateTaskForm = ({
                 name="projectId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Project</FormLabel>
+                    <FormLabel className="text-black">Project</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={projectId}
@@ -205,16 +207,16 @@ export const CreateTaskForm = ({
                         </SelectTrigger>
                       </FormControl>
                       <FormMessage />
-                      <SelectContent>
+                      <SelectContent className="w-[var(--radix-select-trigger-width)]">
                         {projectOptions.map((project) => (
                           <SelectItem key={project.id} value={project.id}>
-                            <div className="flex items-center gap-x-2">
+                            <div className="flex items-center gap-x-2 min-w-0">
                               <ProjectAvatar
                                 name={project.name}
                                 image={project.imageUrl}
-                                className="size-6"
+                                className="size-6 shrink-0"
                               />
-                              {project.name}
+                              <span className="truncate">{project.name}</span>
                             </div>
                           </SelectItem>
                         ))}

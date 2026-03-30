@@ -136,6 +136,8 @@ const app = new Hono()
             [Query.equal('workspaceId', memberToUpdate.workspaceId)]
         );
 
+        const allAdminsInWorkspace = allMembersInWorkspace.documents.filter((member) => member.role === MemberRole.ADMIN);
+
         if (!member) {
             return c.json({error: 'Unauthorized'}, 401)
         }
@@ -144,8 +146,12 @@ const app = new Hono()
             return c.json({error: 'Unauthorized'}, 401)
         }
 
-        if (member.role === MemberRole.ADMIN && allMembersInWorkspace.total <= 1) {
+        if (member.role === MemberRole.ADMIN && allMembersInWorkspace.total <= 1 && role !== MemberRole.ADMIN) {
             return c.json({error: 'Cannot downgrade the last member'}, 400)
+        }
+
+        if (member.role === MemberRole.ADMIN && role !== MemberRole.ADMIN && allAdminsInWorkspace.length === 1) {
+            return c.json({error: 'Cannot downgrade the last admin'}, 400)
         }
 
         await databases.updateDocument(
