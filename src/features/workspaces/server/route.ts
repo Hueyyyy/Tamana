@@ -14,6 +14,7 @@ import {
   DATABASE_ID,
   IMAGES_BUCKET_ID,
   MEMBERS_ID,
+  PROJECTS_ID,
   TASKS_ID,
   WORKSPACES_ID,
 } from '@/config'
@@ -380,6 +381,36 @@ const app = new Hono()
     if (!member || member.role !== MemberRole.ADMIN) {
       return c.json({ error: 'Unauthorized' }, 401)
     }
+
+    const projects = await databases.listDocuments(
+      DATABASE_ID,
+      PROJECTS_ID,
+      [Query.equal('workspaceId', workspaceId)],
+    )
+
+    await Promise.all(
+      projects.documents.map((project) => databases.deleteDocument(DATABASE_ID, PROJECTS_ID, project.$id)),
+    )
+
+    const tasks = await databases.listDocuments(
+      DATABASE_ID,
+      TASKS_ID,
+      [Query.equal('workspaceId', workspaceId)],
+    )
+
+    await Promise.all(
+      tasks.documents.map((task) => databases.deleteDocument(DATABASE_ID, TASKS_ID, task.$id)),
+    )
+
+    const members = await databases.listDocuments(
+      DATABASE_ID,
+      MEMBERS_ID,
+      [Query.equal('workspaceId', workspaceId)],
+    )
+
+    await Promise.all(
+      members.documents.map((member) => databases.deleteDocument(DATABASE_ID, MEMBERS_ID, member.$id)),
+    )
 
     await databases.deleteDocument(DATABASE_ID, WORKSPACES_ID, workspaceId)
 

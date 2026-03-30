@@ -54,7 +54,7 @@ export const EditWorkspaceForm = ({
   const [DeleteDialog, confirmDelete] = useConfirm({
     title: 'Delete Workspace',
     message:
-      'Are you sure you want to delete this workspace? This action cannot be undone.',
+      'Are you sure you want to delete this workspace? This action will also delete all the projects, tasks, and members associated with this workspace.',
     variant: 'destructive',
   });
   const [ResetDialog, confirmReset] = useConfirm({
