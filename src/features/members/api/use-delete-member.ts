@@ -16,9 +16,10 @@ type RequestType = InferRequestType<
 export const useDeleteMember = () => {
   const queryClient = useQueryClient()
   const mutation = useMutation<ResponseType, Error, RequestType>({
-    mutationFn: async ({ param }) => {
+    mutationFn: async ({ param, query }) => {
       const response = await client.api.members[':memberId']['$delete']({
         param,
+        query,
       })
 
       if (!response.ok) {

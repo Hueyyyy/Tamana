@@ -3,12 +3,7 @@
 import { Fragment } from 'react';
 
 //Components
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,6 +48,7 @@ export const MemberList = () => {
     updateMember({
       param: { memberId },
       json: { role },
+      query: { workspaceId },
     });
   };
 
@@ -63,6 +59,7 @@ export const MemberList = () => {
     deleteMember(
       {
         param: { memberId },
+        query: { workspaceId },
       },
       {
         onSuccess: () => {
