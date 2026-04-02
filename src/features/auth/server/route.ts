@@ -121,6 +121,12 @@ const app = new Hono()
 
       } 
       else if (image === 'delete') {
+        const user = c.get('user')
+        const imageId = user.prefs?.imageId
+        if (imageId) {
+          await storage.deleteFile(IMAGES_BUCKET_ID, imageId)
+        }
+
         await account.updatePrefs({
           imageId: '',
         });

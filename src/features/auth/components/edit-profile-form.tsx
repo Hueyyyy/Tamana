@@ -126,15 +126,8 @@ export const EditProfileForm = ({
     } else {
       form.setValue('image', '');
     }
+    setIsUpdateImage(true);
   };
-
-  useEffect(() => {
-    if (form.getValues('image') === initialValues.imageUrl) {
-      setIsUpdateImage(false);
-    } else {
-      setIsUpdateImage(true);
-    }
-  }, [form.getValues('image')]);
 
   return (
     <div className="flex flex-col gap-y-4">
