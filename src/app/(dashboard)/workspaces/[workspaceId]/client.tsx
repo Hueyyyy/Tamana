@@ -65,9 +65,9 @@ export const WorkspaceIdClient = () => {
   }
 
   return (
-    <div className="h-full flex flex-col space-y-4">
+    <div className="h-full flex flex-col space-y-4 max-h-screen">
       <Analytics data={analytics} />
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 pb-4 md:pb-0">
         <TaskList
           data={tasks.documents}
           total={tasks.total}
@@ -105,7 +105,7 @@ export const TaskList = ({ data, total, disableCreate }: TaskListProp) => {
           </Button>
         </div>
         <DottedSeparator className="my-4" />
-        <ul className="flex flex-col gap-y-4">
+        <ul className="flex flex-col gap-y-4 max-h-[200px] overflow-y-auto">
           {data.map((task) => (
             <li key={task.$id}>
               <Link href={`/workspaces/${workspaceId}/tasks/${task.$id}`}>
@@ -149,7 +149,7 @@ export const ProjectList = ({ data, total }: ProjectListProp) => {
   const workspaceId = useWorkspaceId();
 
   return (
-    <div className="flex flex-col gap-y-4 col-span-1">
+    <div className="flex flex-col gap-y-4 col-span-1 ">
       <div className="bg-white border rounded-lg p-4">
         <div className="flex items-center justify-between">
           <p className="text-lg font-semibold">Projects ({total})</p>
@@ -162,7 +162,7 @@ export const ProjectList = ({ data, total }: ProjectListProp) => {
           </Button>
         </div>
         <DottedSeparator className="my-4" />
-        <ul className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <ul className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-h-[254px] overflow-y-auto">
           {data.map((project) => (
             <li key={project.$id}>
               <Link href={`/workspaces/${workspaceId}/projects/${project.$id}`}>
@@ -211,7 +211,7 @@ export const MemberList = ({ data, total }: MemberListProp) => {
           </Button>
         </div>
         <DottedSeparator className="my-4" />
-        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[250px] overflow-y-auto">
           {data.map((member) => (
             <li key={member.$id}>
               <Card className="shadown-none rounded-lg hover:opacity-75 transition">

@@ -39,10 +39,10 @@ export const WorkspaceSwitcher = () => {
         <SelectTrigger className="w-full h-fit bg-neutral-200 font-medium p-1">
           <SelectValue placeholder="No workspace selected" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="max-h-[250px] overflow-y-auto">
           {data?.documents.map((workspace) => (
             <SelectItem key={workspace.$id} value={workspace.$id}>
-              <div className="flex justify-start items-center gap-3 font-medium max-w-[180px]">
+              <div className="flex justify-start items-center gap-3 font-medium max-w-[180px] max-h-[40px]">
                 <WorkspaceAvatar
                   name={workspace.name}
                   image={workspace.imageUrl}

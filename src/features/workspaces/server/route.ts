@@ -332,7 +332,7 @@ const app = new Hono()
         return c.json({ error: 'Unauthorized' }, 401)
       }
 
-      let imageUrl: string | undefined
+      let imageUrl: string | null
 
       if (image instanceof File) {
         const fileResponse = await storage.createFile(
@@ -350,8 +350,9 @@ const app = new Hono()
           'base64',
         )}`
       } else {
-        imageUrl = image
+        imageUrl = null
       }
+
 
       const updatedWorkspace = await databases.updateDocument(
         DATABASE_ID,
@@ -362,6 +363,8 @@ const app = new Hono()
           imageUrl: imageUrl,
         },
       )
+
+      
 
       return c.json({ data: updatedWorkspace })
     },

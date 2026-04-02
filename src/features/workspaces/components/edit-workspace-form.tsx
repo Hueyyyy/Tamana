@@ -63,7 +63,7 @@ export const EditWorkspaceForm = ({
       'Are you sure you want to reset the invite code for this workspace? This action cannot be undone.',
     variant: 'destructive',
   });
-  const form = useForm<z.infer<typeof updateWorkspaceSchema>>({
+  const form = useForm<z.input<typeof updateWorkspaceSchema>>({
     resolver: zodResolver(updateWorkspaceSchema),
     defaultValues: {
       ...initialValues,
@@ -71,7 +71,7 @@ export const EditWorkspaceForm = ({
     },
   });
 
-  const onSubmit = (data: z.infer<typeof updateWorkspaceSchema>) => {
+  const onSubmit = (data: z.input<typeof updateWorkspaceSchema>) => {
     const finalData = {
       ...data,
       image: data.image instanceof File ? data.image : '',
@@ -82,10 +82,12 @@ export const EditWorkspaceForm = ({
     });
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement> | null) => {
+    const file = e?.target.files?.[0];
     if (file) {
       form.setValue('image', file);
+    } else {
+      form.setValue('image', '');
     }
   };
 
@@ -209,10 +211,11 @@ export const EditWorkspaceForm = ({
                               className="w-fit mt-2"
                               variant="destructive"
                               onClick={() => {
-                                field.onChange(null);
+                                field.onChange('');
                                 if (inputRef.current) {
                                   inputRef.current.value = '';
                                 }
+                                handleImageChange(null);
                               }}
                               disabled={isPending}
                             >
