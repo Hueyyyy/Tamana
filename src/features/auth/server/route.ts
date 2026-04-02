@@ -1,12 +1,13 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 
-import { serverLoginSchema, serverSignupSchema } from '../schemas'
+import { serverLoginSchema, serverSignupSchema, serverUpdateProfileSchema } from '../schemas'
 import { createAdminClient } from '@/lib/appwrite'
 import { ID, Query } from 'node-appwrite'
 import { deleteCookie, setCookie } from 'hono/cookie'
 import { AUTH_COOKIE } from '../constants'
 import { sessionMiddleware } from '@/lib/session-middleware'
+import { IMAGES_BUCKET_ID } from '@/config'
 
 const app = new Hono()
   .get('/current', sessionMiddleware, (c) => {
@@ -88,6 +89,83 @@ const app = new Hono()
     await account.deleteSession('current')
 
     return c.json({ success: true })
+  })
+  .patch('/update-profile', zValidator('form', serverUpdateProfileSchema), sessionMiddleware, async (c) => {
+    const { name, email, password, image } = c.req.valid('form')
+
+    const storage = c.get('storage')
+    const account = c.get('account')
+
+    try {
+      if ((email !== undefined) && (password !== undefined)) {
+        await account.updateEmail(email, password)
+      }
+      // if (password) {
+      //   await account.updatePassword(password)
+      // }
+      if (name) {
+        await account.updateName(name)
+      }
+
+      
+      if (image instanceof File) {
+        const fileResponse = await storage.createFile(
+          IMAGES_BUCKET_ID,
+          ID.unique(),
+          image,
+        )
+
+        await account.updatePrefs({
+          imageId: fileResponse.$id,
+        });
+
+      } 
+      else if (image === 'delete') {
+        await account.updatePrefs({
+          imageId: '',
+        });
+      }
+
+      return c.json({ success: true })
+    } catch (err) {
+      const error = err as Error & { code?: number };
+      if (error.code === 401) {
+        return c.json({ error: 'Authentication failed. Please check your credentials.' }, 401);
+      }
+
+      return c.json({ error: error.message || "Internal Server Error" }, 500);
+    }
+  })
+  .get('/profile-avatar', sessionMiddleware, async (c) => {
+    const storage = c.get('storage')
+    const user = c.get('user')
+
+    try {
+      const imageId = user.prefs?.imageId
+      if (!imageId) {
+        return c.json({ error: 'No image found' }, 404)
+      }
+
+      const arrayBuffer = await storage.getFilePreview(
+        IMAGES_BUCKET_ID,
+        imageId,
+      )
+
+      const imageUrl = `data:image/png;base64,${Buffer.from(arrayBuffer).toString(
+        'base64',
+      )}`
+
+      return c.json({ data: {
+        imageUrl
+      } })
+    } catch (err) {
+      const error = err as Error & { code?: number };
+      if (error.code === 401) {
+        return c.json({ error: 'Authentication failed. Please check your credentials.' }, 401);
+      }
+
+      return c.json({ error: error.message || "Internal Server Error" }, 500);
+    }
   })
 
 export default app
