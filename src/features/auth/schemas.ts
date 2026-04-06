@@ -41,6 +41,12 @@ export const updateProfileSchema = z.object({
       z.string().transform((value) => (value === '' ? '' : value)),
     ])
     .optional(),
+  newPassword: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/^[A-Z]/, 'Password must start with an uppercase letter')
+    .regex(/[^a-zA-Z0-9]/, 'Password must contain at least 1 special character')
+    .optional(),
 })
 
 export const serverUpdateProfileSchema = z.object({
@@ -53,4 +59,5 @@ export const serverUpdateProfileSchema = z.object({
       z.string().transform((value) => (value === '' ? '' : value)),
     ])
     .optional(),
+  newPassword: z.string().optional(),
 })

@@ -91,23 +91,24 @@ const app = new Hono()
     return c.json({ success: true })
   })
   .patch('/update-profile', zValidator('form', serverUpdateProfileSchema), sessionMiddleware, async (c) => {
-    const { name, email, password, image } = c.req.valid('form')
+    const { name, email, password, image, newPassword } = c.req.valid('form')
 
     const storage = c.get('storage')
     const account = c.get('account')
 
     try {
-      if ((email !== undefined) && (password !== undefined)) {
-        await account.updateEmail(email, password)
-      }
-      // if (password) {
-      //   await account.updatePassword(password)
-      // }
       if (name) {
         await account.updateName(name)
       }
 
+      if (email && password) {
+        await account.updateEmail(email, password)
+      }
       
+      if (newPassword && password) {
+        await account.updatePassword(newPassword, password);
+      }
+     
       if (image instanceof File) {
         const fileResponse = await storage.createFile(
           IMAGES_BUCKET_ID,

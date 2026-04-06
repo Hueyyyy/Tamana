@@ -15,6 +15,7 @@ import {
   FormItem,
   FormControl,
   FormMessage,
+  FormLabel,
 } from '@/components/ui/form';
 
 //Hooks
@@ -29,9 +30,12 @@ import Link from 'next/link';
 //Schemas
 import { signupSchema } from '../schemas';
 import { hashPassword } from '@/lib/utils';
+import { useState } from 'react';
+import { EyeIcon, EyeOffIcon } from 'lucide-react';
 
 const SignUpCard = () => {
   const { mutate, isPending } = useSignUp();
+  const [isShowPassword, setIsShowPassword] = useState(false);
 
   const form = useForm<z.infer<typeof signupSchema>>({
     resolver: zodResolver(signupSchema),
@@ -41,6 +45,10 @@ const SignUpCard = () => {
       password: '',
     },
   });
+
+  const handleShowPassword = () => {
+    setIsShowPassword((prev) => !prev);
+  };
 
   const onSubmit = async (values: z.infer<typeof signupSchema>) => {
     const hashedPassword = await hashPassword(values.password);
@@ -63,6 +71,7 @@ const SignUpCard = () => {
               control={form.control}
               render={({ field }) => (
                 <FormItem>
+                  <FormLabel>Name</FormLabel>
                   <FormControl>
                     <Input type="text" placeholder="Enter name" {...field} />
                   </FormControl>
@@ -75,6 +84,7 @@ const SignUpCard = () => {
               control={form.control}
               render={({ field }) => (
                 <FormItem>
+                  <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input type="email" placeholder="Enter email" {...field} />
                   </FormControl>
@@ -87,9 +97,24 @@ const SignUpCard = () => {
               control={form.control}
               render={({ field }) => (
                 <FormItem>
+                  <div className="flex items-center gap-x-2">
+                    <FormLabel>Password</FormLabel>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleShowPassword}
+                    >
+                      {isShowPassword ? (
+                        <EyeIcon className="size-4" />
+                      ) : (
+                        <EyeOffIcon className="size-4" />
+                      )}
+                    </Button>
+                  </div>
                   <FormControl>
                     <Input
-                      type="password"
+                      type={isShowPassword ? 'text' : 'password'}
                       placeholder="Enter password"
                       {...field}
                     />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 // Helpers
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -31,7 +31,13 @@ import { DottedSeparator } from '@/components/dotted-separator';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeftIcon, ImageIcon, Pencil } from 'lucide-react';
+import {
+  ArrowLeftIcon,
+  EyeIcon,
+  EyeOffIcon,
+  ImageIcon,
+  Pencil,
+} from 'lucide-react';
 
 // Next
 import Image from 'next/image';
@@ -60,6 +66,9 @@ export const EditProfileForm = ({
   const [isUpdateEmail, setIsUpdateEmail] = useState(false);
   const [isUpdateName, setIsUpdateName] = useState(false);
   const [isUpdateImage, setIsUpdateImage] = useState(false);
+  const [isUpdatePassword, setIsUpdatePassword] = useState(false);
+  const [isShowPassword, setIsShowPassword] = useState(false);
+  const [isShowNewPassword, setIsShowNewPassword] = useState(false);
   const form = useForm<z.input<typeof updateProfileSchema>>({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
@@ -93,9 +102,29 @@ export const EditProfileForm = ({
       return;
     }
 
-    if (!isUpdateEmail && !isUpdateName && !isUpdateImage) {
+    if (
+      !isUpdateEmail &&
+      !isUpdateName &&
+      !isUpdateImage &&
+      !isUpdatePassword
+    ) {
       toast.error('No changes to update');
       return;
+    }
+
+    if (isUpdatePassword && !data.newPassword) {
+      toast.error('New password is required');
+      return;
+    }
+
+    if (isUpdatePassword && data.newPassword && !data.password) {
+      toast.error('Current password is required');
+      return;
+    }
+
+    if (isUpdatePassword && data.newPassword && data.password) {
+      data.newPassword = await hashPassword(data.newPassword);
+      data.password = await hashPassword(data.password);
     }
 
     const finalData = {
@@ -103,6 +132,10 @@ export const EditProfileForm = ({
       ...(isUpdateEmail && { email: data.email, password: data.password }),
       ...(isUpdateImage && {
         image: data.image instanceof File ? data.image : 'delete',
+      }),
+      ...(isUpdatePassword && {
+        newPassword: data.newPassword,
+        password: data.password,
       }),
     };
 
@@ -117,6 +150,18 @@ export const EditProfileForm = ({
 
   const handleNameChange = () => {
     setIsUpdateName((prev) => !prev);
+  };
+
+  const handlePasswordChange = () => {
+    setIsUpdatePassword((prev) => !prev);
+  };
+
+  const handleShowPassword = () => {
+    setIsShowPassword((prev) => !prev);
+  };
+
+  const handleShowNewPassword = () => {
+    setIsShowNewPassword((prev) => !prev);
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement> | null) => {
@@ -153,10 +198,14 @@ export const EditProfileForm = ({
               <div className="flex flex-col gap-y-4">
                 <div className="flex items-center gap-x-2">
                   <FormLabel>Name</FormLabel>
-                  <Pencil
-                    className="size-4 text-muted-foreground cursor-pointer"
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
                     onClick={handleNameChange}
-                  />
+                  >
+                    <Pencil className="size-4 text-muted-foreground cursor-pointer" />
+                  </Button>
                 </div>
                 {isUpdateName ? (
                   <FormField
@@ -179,10 +228,14 @@ export const EditProfileForm = ({
 
                 <div className="flex items-center gap-x-2">
                   <FormLabel>Email</FormLabel>
-                  <Pencil
-                    className="size-4 text-muted-foreground cursor-pointer"
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
                     onClick={handleEmailChange}
-                  />
+                  >
+                    <Pencil className="size-4 text-muted-foreground cursor-pointer" />
+                  </Button>
                 </div>
                 {isUpdateEmail ? (
                   <div className="flex flex-col gap-y-4">
@@ -198,26 +251,88 @@ export const EditProfileForm = ({
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="Enter password" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                   </div>
                 ) : (
                   <div className="flex flex-col gap-y-2">
                     <Input value={initialValues.email} disabled />
                   </div>
                 )}
-
+                <div className="flex items-center gap-x-2">
+                  <FormLabel>Change Password</FormLabel>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handlePasswordChange}
+                  >
+                    <Pencil className="size-4 text-muted-foreground cursor-pointer" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleShowNewPassword}
+                  >
+                    {isShowNewPassword ? (
+                      <EyeIcon className="size-4" />
+                    ) : (
+                      <EyeOffIcon className="size-4" />
+                    )}
+                  </Button>
+                </div>
+                {isUpdatePassword && (
+                  <div className="flex flex-col gap-y-4">
+                    <FormField
+                      control={form.control}
+                      name="newPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type={isShowNewPassword ? 'text' : 'password'}
+                              placeholder="Enter new password"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
+                {(isUpdatePassword || isUpdateEmail) && (
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center gap-x-2">
+                          <FormLabel>Confirm current password</FormLabel>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleShowPassword}
+                          >
+                            {isShowPassword ? (
+                              <EyeIcon className="size-4" />
+                            ) : (
+                              <EyeOffIcon className="size-4" />
+                            )}
+                          </Button>
+                        </div>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type={isShowPassword ? 'text' : 'password'}
+                            placeholder="Enter current password"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
                 <FormField
                   control={form.control}
                   name="image"
