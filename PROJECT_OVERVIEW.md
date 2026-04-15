@@ -38,6 +38,22 @@ The project follows a **modular feature-based architecture**. Each core function
 
 ---
 
+## ✨ Key Features
+
+- **Multi-tenant Workspaces**: Create and manage multiple isolated workspaces.
+- **Project Organization**: Organize tasks within specific projects.
+- **Advanced Task Management**:
+    - **Multiple Views**: Switch between List, Kanban (with drag-and-drop), and Calendar views.
+    - **Filtering**: Filter tasks by status, assignee, project, and due date.
+    - **Bulk Updates**: Support for updating task positions and statuses across the board.
+- **Analytics Dashboards**: Visual metrics for workspaces and projects showing task completion trends and overdue counts.
+- **Robust Authentication**: Secure sign-in/sign-up with Appwrite, including OAuth support.
+- **Member Management**: Invite members to workspaces via unique invite codes with Role-Based Access Control (RBAC).
+- **Profile Customization**: Personalize user profiles with avatars and secure account management.
+- **Responsive Design**: Fully responsive UI built with Tailwind CSS and Shadcn UI.
+
+---
+
 ## 📡 API Architecture (Hono RPC)
 
 The API is built using Hono, mounted at `/api`. This setup provides several benefits:
@@ -86,3 +102,25 @@ The API is built using Hono, mounted at `/api`. This setup provides several bene
 1. Create a new folder in `src/features/`.
 2. Define its routes and mount them in `src/app/api/[[...route]]/route.ts`.
 3. Add the feature's types, schemas, and components.
+
+---
+
+## 📅 Recent Updates
+
+### 🔐 Profile & Security (April 2026)
+- **Profile Management**: Users can now update their name and profile picture.
+- **Account Security**: Implemented functionality for users to change their email and password (requires current password verification).
+- **Avatar Storage**: Profile images are stored in Appwrite Storage, with `imageId` managed in user preferences. Includes automatic cleanup of old avatars in storage when updated.
+- **Settings Page**: Added a dedicated profile settings page for managing these attributes.
+
+### 📊 Analytics & Insights
+- **Workspace & Project Analytics**: Real-time tracking of task statistics:
+    - Total task count and month-over-month difference.
+    - Assigned tasks count and progress.
+    - Incomplete, completed, and overdue task tracking.
+- **Data Visualization**: Integrated charts and cards to display these metrics on workspace and project dashboards.
+
+### 🛠️ UI & API Improvements
+- **Optimized Image Uploads**: Refactored image upload logic to handle base64 previews and storage more efficiently.
+- **Refined Task Management**: Improved the Kanban board and task status transitions.
+- **Bug Fixes**: Addressed form validation issues and ensured consistent data fetching across feature modules.
