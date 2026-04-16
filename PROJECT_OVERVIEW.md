@@ -21,6 +21,7 @@ This document provides a technical overview of the Tamana project, its architect
 The project follows a **modular feature-based architecture**. Each core functionality is encapsulated within its own directory in `src/features/`.
 
 ### Folder Structure
+
 - `src/app/`: Next.js pages, layouts, and the root Hono API handler.
 - `src/components/`: Reusable global UI components (generic).
 - `src/features/`: Feature-specific logic (e.g., `auth`, `workspaces`, `tasks`, `notifications`).
@@ -29,6 +30,7 @@ The project follows a **modular feature-based architecture**. Each core function
 - `src/public/`: Static assets.
 
 ### Inside a Feature (`src/features/[featureName]`)
+
 - `api/`: React Query hooks for client-side data fetching.
 - `components/`: UI components specific to this feature.
 - `hooks/`: Custom hooks for this feature.
@@ -44,9 +46,9 @@ The project follows a **modular feature-based architecture**. Each core function
 - **Multi-tenant Workspaces**: Create and manage multiple isolated workspaces.
 - **Project Organization**: Organize tasks within specific projects.
 - **Advanced Task Management**:
-    - **Multiple Views**: Switch between List, Kanban (with drag-and-drop), and Calendar views.
-    - **Filtering**: Filter tasks by status, assignee, project, and due date.
-    - **Bulk Updates**: Support for updating task positions and statuses across the board.
+  - **Multiple Views**: Switch between List, Kanban (with drag-and-drop), and Calendar views.
+  - **Filtering**: Filter tasks by status, assignee, project, and due date.
+  - **Bulk Updates**: Support for updating task positions and statuses across the board.
 - **Real-time Notifications**: Instant alerts for task assignments, unassignments, and status changes.
 - **Analytics Dashboards**: Visual metrics for workspaces and projects showing task completion trends and overdue counts.
 - **Robust Authentication**: Secure sign-in/sign-up with Appwrite, including OAuth support.
@@ -59,6 +61,7 @@ The project follows a **modular feature-based architecture**. Each core function
 ## 📡 API Architecture (Hono RPC)
 
 The API is built using Hono, mounted at `/api`. This setup provides several benefits:
+
 1. **Lightweight Middleware**: Efficient request handling.
 2. **Type-Safe RPC**: By exporting the `AppType` from `src/app/api/[[...route]]/route.ts`, the frontend can use a typed client (`src/lib/rpc.ts`) to make requests with full IntelliSense.
 
@@ -79,7 +82,7 @@ The API is built using Hono, mounted at `/api`. This setup provides several bene
 ## 🗃️ Database & Storage (Appwrite)
 
 - **Database**: Appwrite's NoSQL database is used for storing workspaces, members, projects, and tasks.
-- **Storage**: Appwrite's bucket storage is used for profile avatars and workspace/project images.
+- **Storage**: Appwrite's bucket storage is used for profile avatars and project images.
 - **Realtime**: Appwrite Realtime is used for push-based updates to the UI, particularly for notifications.
 - **Configurations**: Environment-specific IDs (Database, Buckets, Collections) are managed in `src/config.ts`.
 
@@ -97,11 +100,13 @@ The API is built using Hono, mounted at `/api`. This setup provides several bene
 ## 🔄 Common Workflows
 
 ### Adding a New API Endpoint
+
 1. Define the Zod schema in `features/[feature]/schemas.ts`.
 2. Add the route to `features/[feature]/server/route.ts`.
 3. Create a React Query hook in `features/[feature]/api/use-[action].ts`.
 
 ### Adding a New Feature
+
 1. Create a new folder in `src/features/`.
 2. Define its routes and mount them in `src/app/api/[[...route]]/route.ts`.
 3. Add the feature's types, schemas, and components.
@@ -111,24 +116,31 @@ The API is built using Hono, mounted at `/api`. This setup provides several bene
 ## 📅 Recent Updates
 
 ### 🔔 Notification System (April 2026)
+
 - **Real-time Alerts**: Integrated Appwrite Realtime to provide instant notifications to users.
 - **Activity Tracking**: Notifications are triggered for task assignments, unassignments, and task status changes.
 - **Notification Bell**: Added a global notification component with unread counts and quick actions.
 
 ### 🔐 Profile & Security (April 2026)
+
 - **Profile Management**: Users can now update their name and profile picture.
 - **Account Security**: Implemented functionality for users to change their email and password (requires current password verification).
 - **Avatar Storage**: Profile images are stored in Appwrite Storage, with `imageId` managed in user preferences. Includes automatic cleanup of old avatars in storage when updated.
 - **Settings Page**: Added a dedicated profile settings page for managing these attributes.
 
 ### 📊 Analytics & Insights
+
 - **Workspace & Project Analytics**: Real-time tracking of task statistics:
-    - Total task count and month-over-month difference.
-    - Assigned tasks count and progress.
-    - Incomplete, completed, and overdue task tracking.
+  - Total task count and month-over-month difference.
+  - Assigned tasks count and progress.
+  - Incomplete, completed, and overdue task tracking.
 - **Data Visualization**: Integrated charts and cards to display these metrics on workspace and project dashboards.
 
-### 🛠️ UI & API Improvements
+### 🛠️ UI, Navigation & API Improvements
+
+- **Redirect Back System**: Implemented a robust redirection system using Next.js Middleware and a `next` query parameter. This ensures users are returned to their intended destination (e.g., a specific task page from an email link) after successful authentication.
+- **Enhanced Session Persistence**: Optimized authentication cookie settings by switching to `SameSite: Lax` and implementing environment-dependent `Secure` flags. This improves the user experience when navigating to the app from external links (like email notifications) while maintaining security in production.
+- **Email Notification Reliability**: Fixed critical bugs in the email notification utility to ensure reliable delivery of task assignment and status update alerts.
 - **Optimized Image Uploads**: Refactored image upload logic to handle base64 previews and storage more efficiently.
 - **Refined Task Management**: Improved the Kanban board and task status transitions.
 - **Bug Fixes**: Addressed form validation issues and ensured consistent data fetching across feature modules.

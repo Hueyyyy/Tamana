@@ -21,6 +21,7 @@ import {
 //Hooks
 import { useForm } from 'react-hook-form';
 import { useSignUp } from '../api/use-signup';
+import { useSearchParams } from 'next/navigation';
 
 //Helpers
 import { z } from 'zod';
@@ -33,8 +34,13 @@ import { hashPassword } from '@/lib/utils';
 import { useState } from 'react';
 import { EyeIcon, EyeOffIcon } from 'lucide-react';
 
+//Libs
+import { signUpWithGithub, signUpWithGoogle } from '@/lib/oauth';
+
 const SignUpCard = () => {
   const { mutate, isPending } = useSignUp();
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next');
   const [isShowPassword, setIsShowPassword] = useState(false);
 
   const form = useForm<z.infer<typeof signupSchema>>({
@@ -142,6 +148,7 @@ const SignUpCard = () => {
           variant={'secondary'}
           size={'lg'}
           className="w-full font-semibold"
+          onClick={() => signUpWithGoogle(next || undefined)}
         >
           <FcGoogle />
           Login with Google
@@ -151,9 +158,10 @@ const SignUpCard = () => {
           variant={'secondary'}
           size={'lg'}
           className="w-full font-semibold"
+          onClick={() => signUpWithGithub(next || undefined)}
         >
           <FaGithub />
-          Login with Google
+          Login with Github
         </Button>
       </CardContent>
       <div className="px-7">
@@ -162,7 +170,7 @@ const SignUpCard = () => {
       <CardContent className="p-7 flex items-center justify-center">
         <p>
           Already have an account?{' '}
-          <Link href="/sign-in" className="text-blue-500 font-semibold">
+          <Link href={next ? `/sign-in?next=${encodeURIComponent(next)}` : "/sign-in"} className="text-blue-500 font-semibold">
             Sign In
           </Link>
         </p>

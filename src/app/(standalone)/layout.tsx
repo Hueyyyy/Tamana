@@ -4,6 +4,7 @@ import logo from '@/public/assets/logo.svg'
 import UserButton from '@/features/auth/components/user-button'
 import { getCurrent } from '@/features/auth/queries'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 
 interface StandaloneLayoutProps {
   children: React.ReactNode
@@ -11,7 +12,10 @@ interface StandaloneLayoutProps {
 
 const StandaloneLayout = async ({ children }: StandaloneLayoutProps) => {
   const user = await getCurrent()
-  if (!user) redirect('/sign-in')
+  if (!user) {
+    const pathname = headers().get('x-pathname') || '/';
+    redirect(`/sign-in?next=${encodeURIComponent(pathname)}`);
+  }
 
   return (
     <main className="bg-neutral-100 min-h-screen">

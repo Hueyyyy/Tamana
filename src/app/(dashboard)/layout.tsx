@@ -11,6 +11,7 @@ import { getCurrent } from '@/features/auth/queries';
 
 //Libs
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 
 export const DashboardLayout = async ({
   children,
@@ -18,7 +19,10 @@ export const DashboardLayout = async ({
   children: React.ReactNode;
 }) => {
   const user = await getCurrent();
-  if (!user) redirect('/sign-in');
+  if (!user) {
+    const pathname = headers().get('x-pathname') || '/';
+    redirect(`/sign-in?next=${encodeURIComponent(pathname)}`);
+  }
 
   return (
     <div className="min-h-screen">

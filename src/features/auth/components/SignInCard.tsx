@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import Link from 'next/link';
 import { useLogin } from '../api/use-login';
+import { useSearchParams } from 'next/navigation';
 
 //Helpers
 import { z } from 'zod';
@@ -40,6 +41,8 @@ import { useState } from 'react';
 
 const SignInCard = () => {
   const { mutate, isPending } = useLogin();
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next');
   const [isShowPassword, setIsShowPassword] = useState(false);
 
   const form = useForm<z.infer<typeof loginSchema>>({
@@ -136,7 +139,7 @@ const SignInCard = () => {
           variant={'secondary'}
           size={'lg'}
           className="w-full font-semibold"
-          onClick={() => signUpWithGoogle()}
+          onClick={() => signUpWithGoogle(next || undefined)}
         >
           <FcGoogle />
           Login with Google
@@ -146,7 +149,7 @@ const SignInCard = () => {
           variant={'secondary'}
           size={'lg'}
           className="w-full font-semibold"
-          onClick={() => signUpWithGithub()}
+          onClick={() => signUpWithGithub(next || undefined)}
         >
           <FaGithub />
           Login with Github
@@ -158,7 +161,7 @@ const SignInCard = () => {
       <CardContent className="p-7 flex items-center justify-center">
         <p>
           Don&apos;t have an account?{' '}
-          <Link href="/sign-up" className="text-blue-500 font-semibold">
+          <Link href={next ? `/sign-up?next=${encodeURIComponent(next)}` : "/sign-up"} className="text-blue-500 font-semibold">
             Sign Up
           </Link>
         </p>
