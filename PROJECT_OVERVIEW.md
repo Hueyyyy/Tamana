@@ -6,8 +6,9 @@ This document provides a technical overview of the Tamana project, its architect
 
 - **Framework**: [Next.js 14](https://nextjs.org/) (App Router)
 - **API Layer**: [Hono](https://hono.dev/) (Integrated as a catch-all route at `/api/[[...route]]`)
-- **Backend-as-a-Service**: [Appwrite](https://appwrite.io/) (Auth, Database, Storage)
+- **Backend-as-a-Service**: [Appwrite](https://appwrite.io/) (Auth, Database, Storage, Realtime)
 - **Data Fetching**: [TanStack React Query v5](https://tanstack.com/query/latest)
+- **Real-time Updates**: Appwrite Realtime for instant notifications.
 - **Type Safety**: [Zod](https://zod.dev/) for validation and Hono RPC for end-to-end typing.
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/), [Shadcn/UI](https://ui.shadcn.com/) (Radix UI)
 - **Forms**: `react-hook-form` with Zod resolvers.
@@ -22,7 +23,7 @@ The project follows a **modular feature-based architecture**. Each core function
 ### Folder Structure
 - `src/app/`: Next.js pages, layouts, and the root Hono API handler.
 - `src/components/`: Reusable global UI components (generic).
-- `src/features/`: Feature-specific logic (e.g., `auth`, `workspaces`, `tasks`).
+- `src/features/`: Feature-specific logic (e.g., `auth`, `workspaces`, `tasks`, `notifications`).
 - `src/hooks/`: Reusable React hooks.
 - `src/lib/`: Library initializations and shared utilities.
 - `src/public/`: Static assets.
@@ -46,6 +47,7 @@ The project follows a **modular feature-based architecture**. Each core function
     - **Multiple Views**: Switch between List, Kanban (with drag-and-drop), and Calendar views.
     - **Filtering**: Filter tasks by status, assignee, project, and due date.
     - **Bulk Updates**: Support for updating task positions and statuses across the board.
+- **Real-time Notifications**: Instant alerts for task assignments, unassignments, and status changes.
 - **Analytics Dashboards**: Visual metrics for workspaces and projects showing task completion trends and overdue counts.
 - **Robust Authentication**: Secure sign-in/sign-up with Appwrite, including OAuth support.
 - **Member Management**: Invite members to workspaces via unique invite codes with Role-Based Access Control (RBAC).
@@ -78,6 +80,7 @@ The API is built using Hono, mounted at `/api`. This setup provides several bene
 
 - **Database**: Appwrite's NoSQL database is used for storing workspaces, members, projects, and tasks.
 - **Storage**: Appwrite's bucket storage is used for profile avatars and workspace/project images.
+- **Realtime**: Appwrite Realtime is used for push-based updates to the UI, particularly for notifications.
 - **Configurations**: Environment-specific IDs (Database, Buckets, Collections) are managed in `src/config.ts`.
 
 ---
@@ -106,6 +109,11 @@ The API is built using Hono, mounted at `/api`. This setup provides several bene
 ---
 
 ## 📅 Recent Updates
+
+### 🔔 Notification System (April 2026)
+- **Real-time Alerts**: Integrated Appwrite Realtime to provide instant notifications to users.
+- **Activity Tracking**: Notifications are triggered for task assignments, unassignments, and task status changes.
+- **Notification Bell**: Added a global notification component with unread counts and quick actions.
 
 ### 🔐 Profile & Security (April 2026)
 - **Profile Management**: Users can now update their name and profile picture.

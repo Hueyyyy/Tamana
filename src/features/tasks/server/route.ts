@@ -15,6 +15,7 @@ import { createTaskSchema } from "../schemas";
 
 // utils
 import { getMember } from "@/features/members/utils";
+import { sendEmailNotification } from "@/features/notifications/utils";
 
 // types
 import { Task, TaskStatus } from "../types";
@@ -285,6 +286,12 @@ const app = new Hono()
                         isRead: false,
                     }
                 )
+
+                await sendEmailNotification({
+                    userId: assigneeMember.userId,
+                    title: 'New Task Assigned',
+                    message: `You have been assigned to task: ${name}. Click here to view the task: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${workspaceId}/tasks/${task.$id}`,
+                })
             }
         }
 
@@ -393,6 +400,13 @@ const app = new Hono()
                     payloadForNewAssignee
                 )
 
+                // Email notification for new assignee
+                await sendEmailNotification({
+                    userId: payloadForNewAssignee.userId!,
+                    title: payloadForNewAssignee.title,
+                    message: `${payloadForNewAssignee.message}. Click here to view the task: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${existingTask.workspaceId}/tasks/${task.$id}`,
+                })
+
 
                 // Notification for current assignee
                 if (currentAssigneeMember.userId !== user.$id) {
@@ -402,6 +416,13 @@ const app = new Hono()
                         ID.unique(),
                         payloadForCurrentAssignee
                     )
+
+                    // Email notification for current assignee
+                    await sendEmailNotification({
+                        userId: payloadForCurrentAssignee.userId,
+                        title: payloadForCurrentAssignee.title,
+                        message: `${payloadForCurrentAssignee.message}`,
+                    })
                 }
             }
             
@@ -422,6 +443,12 @@ const app = new Hono()
                             ID.unique(),
                             payloadForCurrentAssignee
                         )
+
+                        await sendEmailNotification({
+                            userId: payloadForCurrentAssignee.userId,
+                            title: payloadForCurrentAssignee.title,
+                            message: `${payloadForCurrentAssignee.message}. Click here to view the task: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${existingTask.workspaceId}/tasks/${task.$id}`,
+                        })
                     }
                 } else if (isAssigneeChanged && payloadForNewAssignee) {
                     payloadForNewAssignee = {
@@ -439,6 +466,13 @@ const app = new Hono()
                             ID.unique(),
                             payloadForNewAssignee
                         )
+
+                        // Email notification for new assignee
+                        await sendEmailNotification({
+                            userId: payloadForNewAssignee.userId!,
+                            title: payloadForNewAssignee.title,
+                            message: `${payloadForNewAssignee.message}. Click here to view the task: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${existingTask.workspaceId}/tasks/${task.$id}`,
+                        })
                     }
                 }
             }
@@ -544,6 +578,13 @@ const app = new Hono()
                             isRead: false,
                         }
                     )
+
+                    // Email notification for assignee
+                    await sendEmailNotification({
+                        userId: assigneeMember?.userId,
+                        title: 'Task Status Updated',
+                        message: `Task "${name}" status updated to ${updatedTask?.status}. Click here to view the task: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${workspaceId}/tasks/${task.$id}`,
+                    })
                 }
             })
         )
