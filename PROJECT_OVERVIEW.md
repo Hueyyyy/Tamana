@@ -50,6 +50,7 @@ The project follows a **modular feature-based architecture**. Each core function
   - **Filtering**: Filter tasks by status, assignee, project, and due date.
   - **Bulk Updates**: Support for updating task positions and statuses across the board.
   - **Task Comments**: Collaborative thread for each task with member tagging and real-time updates.
+  - **Activity Log**: Automatically tracks and displays all changes made to a task (status, assignee, due date, etc.).
 - **Real-time Notifications**: Instant alerts for task assignments, mentions in comments, and status changes.
 - **Analytics Dashboards**: Visual metrics for workspaces and projects showing task completion trends and overdue counts.
 - **Robust Authentication**: Secure sign-in/sign-up with Appwrite, including OAuth support.
@@ -124,6 +125,13 @@ The API is built using Hono, mounted at `/api`. This setup provides several bene
 - **Smart Member Tagging**: Integrated `@mention` system with a real-time member selection dropdown. Supports names with spaces and provides visual highlighting of tags.
 - **Mention Notifications**: Automatically triggers in-app alerts and email notifications for tagged members.
 - **Polished UI**: Includes relative timestamps (e.g., "5 minutes ago"), "(edited)" indicators, and initials-based avatars for commentators.
+
+### 📜 Task Activity Log & Collaborative Tabs (April 2026)
+
+- **Automated Event Tracking**: Changes to task name, description, status, assignee, due date, and project are automatically recorded as activity logs.
+- **Unified Collaboration Hub**: Implemented a tabbed interface on the task detail page to seamlessly switch between **Comments** and **Activity Log**.
+- **Enhanced UI Layout**: Added a fixed-height scrollable area for both collaboration sections, ensuring the task detail page remains compact and usable regardless of the amount of activity or conversation.
+- **Populated Data**: Activities are displayed with the user's name and avatar for clear accountability.
 
 ### 🔔 Notification System (April 2026)
 

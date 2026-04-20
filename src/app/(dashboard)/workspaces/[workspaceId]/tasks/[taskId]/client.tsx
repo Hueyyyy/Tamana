@@ -14,6 +14,10 @@ import { DottedSeparator } from '@/components/dotted-separator';
 import { TaskOverview } from '@/features/tasks/components/task-overview';
 import { TaskDescription } from '@/features/tasks/components/task-description';
 import { CommentSection } from '@/features/comments/components/comment-section';
+import { ActivityLog } from '@/features/activities/components/activity-log';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { MessageSquare, History } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const TaskIdClient = () => {
   const taskId = useTaskId();
@@ -32,7 +36,29 @@ const TaskIdClient = () => {
         <TaskDescription task={task} />
       </div>
       <DottedSeparator className="my-6" />
-      <CommentSection taskId={taskId} />
+      
+      <Tabs defaultValue="comments" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="comments" className="gap-x-2">
+            <MessageSquare className="size-4" />
+            Comments
+          </TabsTrigger>
+          <TabsTrigger value="activity" className="gap-x-2">
+            <History className="size-4" />
+            Activity
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="comments">
+          <ScrollArea className="h-[400px] pr-4">
+            <CommentSection taskId={taskId} />
+          </ScrollArea>
+        </TabsContent>
+        <TabsContent value="activity">
+          <ScrollArea className="h-[400px] pr-4">
+            <ActivityLog taskId={taskId} />
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

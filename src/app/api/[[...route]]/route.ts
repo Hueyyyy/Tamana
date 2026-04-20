@@ -7,6 +7,7 @@ import projects from '@/features/projects/server/route'
 import tasks from '@/features/tasks/server/route'
 import notifications from '@/features/notifications/server/route'
 import comments from '@/features/comments/server/route'
+import activities from '@/features/activities/server/route'
 
 const app = new Hono().basePath('/api')
 
@@ -19,6 +20,7 @@ const routes = app
   .route('/tasks', tasks)
   .route('/notifications', notifications)
   .route('/comments', comments)
+  .route('/activities', activities)
 
 export const GET = handle(app)
 export const POST = handle(app)

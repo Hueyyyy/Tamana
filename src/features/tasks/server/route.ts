@@ -25,6 +25,8 @@ import { DATABASE_ID, MEMBERS_ID, PROJECTS_ID, TASKS_ID, NOTIFICATIONS_ID } from
 import { createAdminClient } from "@/lib/appwrite";
 import { Project } from "@/features/projects/type";
 import { NotificationType } from "@/features/notifications/types";
+import { createActivity } from "@/features/activities/utils";
+import { ActivityType } from "@/features/activities/types";
 
 const app = new Hono()
     .delete('/:taskId', sessionMiddleware, async (c) => {
@@ -263,6 +265,16 @@ const app = new Hono()
             }
         )
 
+        // Activity: Task Created
+        await createActivity({
+            databases,
+            taskId: task.$id,
+            workspaceId,
+            userId: user.$id,
+            type: ActivityType.TASK_CREATED,
+            description: 'created the task',
+        });
+
         // Notification: Task Assigned
         if (assigneeId) {
             const assigneeMember = await databases.getDocument(
@@ -336,6 +348,79 @@ const app = new Hono()
                 projectId
             }
         )
+
+        // Activity Logging
+        const activities = [];
+
+        if (name && name !== existingTask.name) {
+            activities.push(createActivity({
+                databases,
+                taskId,
+                workspaceId: existingTask.workspaceId,
+                userId: user.$id,
+                type: ActivityType.NAME_CHANGED,
+                description: `changed name from "${existingTask.name}" to "${name}"`,
+            }));
+        }
+
+        if (description !== undefined && description !== existingTask.description) {
+            activities.push(createActivity({
+                databases,
+                taskId,
+                workspaceId: existingTask.workspaceId,
+                userId: user.$id,
+                type: ActivityType.DESCRIPTION_CHANGED,
+                description: 'updated the description',
+            }));
+        }
+
+        if (status && status !== existingTask.status) {
+            activities.push(createActivity({
+                databases,
+                taskId,
+                workspaceId: existingTask.workspaceId,
+                userId: user.$id,
+                type: ActivityType.STATUS_CHANGED,
+                description: `changed status from ${existingTask.status} to ${status}`,
+            }));
+        }
+
+        if (assigneeId && assigneeId !== existingTask.assigneeId) {
+            activities.push(createActivity({
+                databases,
+                taskId,
+                workspaceId: existingTask.workspaceId,
+                userId: user.$id,
+                type: ActivityType.ASSIGNEE_CHANGED,
+                description: 'reassigned the task',
+            }));
+        }
+
+        if (dueDate && new Date(dueDate).getTime() !== new Date(existingTask.dueDate).getTime()) {
+            activities.push(createActivity({
+                databases,
+                taskId,
+                workspaceId: existingTask.workspaceId,
+                userId: user.$id,
+                type: ActivityType.DUE_DATE_CHANGED,
+                description: `changed due date to ${new Date(dueDate).toLocaleDateString()}`,
+            }));
+        }
+
+        if (projectId && projectId !== existingTask.projectId) {
+            activities.push(createActivity({
+                databases,
+                taskId,
+                workspaceId: existingTask.workspaceId,
+                userId: user.$id,
+                type: ActivityType.PROJECT_CHANGED,
+                description: 'moved the task to another project',
+            }));
+        }
+
+        if (activities.length > 0) {
+            await Promise.all(activities);
+        }
 
         // Notification: Status Updated or Re-assigned
         const isStatusChanged = status && status !== existingTask.status
