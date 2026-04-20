@@ -49,12 +49,10 @@ const TaskIdClient = () => {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="comments">
-          <ScrollArea className="h-[400px] pr-4">
-            <CommentSection taskId={taskId} />
-          </ScrollArea>
+          <CommentSection taskId={taskId} />
         </TabsContent>
         <TabsContent value="activity">
-          <ScrollArea className="h-[400px] pr-4">
+          <ScrollArea className="h-[500px] pr-4">
             <ActivityLog taskId={taskId} />
           </ScrollArea>
         </TabsContent>

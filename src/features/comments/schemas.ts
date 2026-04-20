@@ -13,4 +13,5 @@ export const getCommentsSchema = z.object({
 
 export const updateCommentSchema = z.object({
   content: z.string().trim().min(1, 'Required'),
+  tags: z.array(z.string()).optional(),
 });

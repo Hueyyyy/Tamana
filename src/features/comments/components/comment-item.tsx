@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { PopulatedComment } from '../types';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -13,6 +13,7 @@ import { useCurrent } from '@/features/auth/api/use-current';
 import { useGetMemberInfo } from '@/features/members/api/use-get-member-info';
 import useConfirm from '@/hooks/use-confirm';
 import { Member } from '@/features/members/type';
+import { cn } from '@/lib/utils';
 
 interface CommentItemProps {
   comment: PopulatedComment;
@@ -22,6 +23,14 @@ interface CommentItemProps {
 export const CommentItem = ({ comment, members }: CommentItemProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
+  const [editTags, setEditTags] = useState<string[]>(comment.tags || []);
+
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionFilter, setMentionFilter] = useState('');
+  const [cursorPosition, setCursorPosition] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   const { data: user } = useCurrent();
   const { data: member } = useGetMemberInfo({
@@ -30,6 +39,48 @@ export const CommentItem = ({ comment, members }: CommentItemProps) => {
   });
   const { mutate: deleteComment, isPending: isDeleting } = useDeleteComment();
   const { mutate: updateComment, isPending: isUpdating } = useUpdateComment();
+
+  const filteredMembers =
+    members
+      .filter(
+        (m) =>
+          m.userId !== user?.$id &&
+          m.name.toLowerCase().includes(mentionFilter.toLowerCase()),
+      )
+      .slice(0, 5) || [];
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        textareaRef.current &&
+        !textareaRef.current.contains(event.target as Node)
+      ) {
+        setShowMentions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isEditing) return;
+    const lastAtPos = editContent.lastIndexOf('@', cursorPosition - 1);
+    if (
+      lastAtPos !== -1 &&
+      !editContent.slice(lastAtPos, cursorPosition).includes(' ')
+    ) {
+      setMentionFilter(editContent.slice(lastAtPos + 1, cursorPosition));
+      setShowMentions(true);
+      setActiveIndex(0);
+    } else {
+      setShowMentions(false);
+    }
+  }, [editContent, cursorPosition, isEditing]);
 
   const [DeleteDialog, confirmDelete] = useConfirm({
     title: 'Delete Comment',
@@ -41,6 +92,46 @@ export const CommentItem = ({ comment, members }: CommentItemProps) => {
   const isAuthor = user?.$id === comment.userId;
   const isAdmin = member?.role === 'ADMIN';
 
+  const insertEditMention = (member: Member) => {
+    const lastAtPos = editContent.lastIndexOf('@', cursorPosition - 1);
+    const before = editContent.slice(0, lastAtPos);
+    const after = editContent.slice(cursorPosition);
+    const mentionText = `@${member.name} `;
+
+    const newContent = before + mentionText + after;
+    setEditContent(newContent);
+
+    const newPos = lastAtPos + mentionText.length;
+    setCursorPosition(newPos);
+
+    if (!editTags.includes(member.userId)) {
+      setEditTags([...editTags, member.userId]);
+    }
+
+    setShowMentions(false);
+    textareaRef.current?.focus();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (showMentions && filteredMembers.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActiveIndex((prev) => (prev + 1) % filteredMembers.length);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActiveIndex(
+          (prev) =>
+            (prev - 1 + filteredMembers.length) % filteredMembers.length,
+        );
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        insertEditMention(filteredMembers[activeIndex]);
+      } else if (e.key === 'Escape') {
+        setShowMentions(false);
+      }
+    }
+  };
+
   const handleDelete = async () => {
     const confirmed = await confirmDelete();
     if (!confirmed) return;
@@ -48,16 +139,29 @@ export const CommentItem = ({ comment, members }: CommentItemProps) => {
   };
 
   const handleUpdate = () => {
-    if (editContent.trim() === '' || editContent === comment.content) {
+    if (
+      editContent.trim() === '' ||
+      (editContent === comment.content &&
+        JSON.stringify(editTags) === JSON.stringify(comment.tags))
+    ) {
       setIsEditing(false);
       setEditContent(comment.content);
       return;
     }
 
+    // Filter tags to only those present in text
+    const finalTags = editTags.filter((tagId) => {
+      const m = members.find((m) => m.userId === tagId);
+      return m && editContent.includes(`@${m.name}`);
+    });
+
     updateComment(
       {
         param: { commentId: comment.$id },
-        json: { content: editContent },
+        json: {
+          content: editContent,
+          tags: finalTags,
+        },
       },
       {
         onSuccess: () => {
@@ -70,6 +174,7 @@ export const CommentItem = ({ comment, members }: CommentItemProps) => {
   const handleCancel = () => {
     setIsEditing(false);
     setEditContent(comment.content);
+    setEditTags(comment.tags || []);
   };
 
   const formatContent = (text: string) => {
@@ -118,7 +223,7 @@ export const CommentItem = ({ comment, members }: CommentItemProps) => {
   };
 
   return (
-    <div className="flex gap-x-4 p-4 border rounded-lg bg-white shadow-sm">
+    <div className="flex gap-x-4 p-4 border rounded-lg bg-white shadow-sm relative">
       <DeleteDialog />
       <Avatar className="size-10">
         <AvatarFallback className="bg-neutral-200 text-neutral-500 font-medium flex items-center justify-center">
@@ -166,12 +271,54 @@ export const CommentItem = ({ comment, members }: CommentItemProps) => {
         </div>
         {isEditing ? (
           <div className="flex flex-col gap-y-2 mt-2">
-            <Textarea
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              disabled={isUpdating}
-              className="min-h-[80px] resize-none"
-            />
+            <div className="relative">
+              {showMentions && filteredMembers.length > 0 && (
+                <div 
+                  ref={dropdownRef}
+                  className="absolute top-full left-0 w-64 bg-white border rounded-md shadow-2xl z-[100] mt-1 overflow-hidden border-neutral-300"
+                >
+
+                  <div className="p-2 text-xs font-semibold bg-neutral-50 border-b text-neutral-500">
+                    Mention someone...
+                  </div>
+                  {filteredMembers.map((m, index) => (
+                    <button
+                      key={m.$id}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        insertEditMention(m);
+                      }}
+                      className={cn(
+                        'w-full flex items-center gap-x-2 p-2 hover:bg-neutral-100 transition text-left',
+                        index === activeIndex && 'bg-neutral-100',
+                      )}
+                    >
+                      <Avatar className="size-6">
+                        <AvatarFallback className="text-[10px]">
+                          {m.name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm truncate">{m.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <Textarea
+                ref={textareaRef}
+                value={editContent}
+                onKeyDown={handleKeyDown}
+                onChange={(e) => setEditContent(e.target.value)}
+                onKeyUp={(e) =>
+                  setCursorPosition(e.currentTarget.selectionStart)
+                }
+                onClick={(e) =>
+                  setCursorPosition(e.currentTarget.selectionStart)
+                }
+                disabled={isUpdating}
+                className="min-h-[80px] resize-none"
+              />
+            </div>
             <div className="flex justify-end gap-x-2">
               <Button
                 variant="outline"

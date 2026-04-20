@@ -18,7 +18,7 @@ import { useEffect } from 'react';
 import { client } from '@/lib/appwrite-client';
 import { DATABASE_ID, NOTIFICATIONS_ID } from '@/config';
 import { useQueryClient } from '@tanstack/react-query';
-import { Notification } from '../types';
+import { Notification, NotificationType } from '../types';
 import { useCurrent } from '@/features/auth/api/use-current';
 
 export const NotificationBell = () => {
@@ -51,6 +51,22 @@ export const NotificationBell = () => {
 
   const handleMarkAsRead = (id: string) => {
     markAsRead({ param: { notificationId: id }, json: { isRead: true } });
+  };
+
+  const getNotificationLink = (notification: Notification) => {
+    switch (notification.type) {
+      case NotificationType.MEMBER_REMOVED:
+        return '/';
+      case NotificationType.MEMBER_ROLE_CHANGED:
+        return `/workspaces/${notification.workspaceId}`;
+      case NotificationType.COMMENT_TAG:
+      case NotificationType.TASK_ASSIGNED:
+      case NotificationType.TASK_UNASSIGNED:
+      case NotificationType.STATUS_UPDATED:
+        return `/workspaces/${notification.workspaceId}/tasks/${notification.targetId}`;
+      default:
+        return `/workspaces/${notification.workspaceId}`;
+    }
   };
 
   return (
@@ -92,7 +108,7 @@ export const NotificationBell = () => {
                   }
                 >
                   <Link
-                    href={`/workspaces/${notification.workspaceId}/tasks/${notification.targetId}`}
+                    href={getNotificationLink(notification)}
                     className="block"
                   >
                     <div className="flex flex-col gap-1">

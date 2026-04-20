@@ -3,9 +3,12 @@ import { Hono } from 'hono'
 import {
     DATABASE_ID,
     MEMBERS_ID,
+    WORKSPACES_ID,
+    NOTIFICATIONS_ID,
 } from '@/config'
 
 //Libs
+import { ID } from 'node-appwrite'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
 import { sessionMiddleware } from '@/lib/session-middleware'
@@ -13,6 +16,8 @@ import { Query } from 'node-appwrite'
 import { createAdminClient } from '@/lib/appwrite'
 import { getMember } from '../utils'
 import { Member, MemberRole } from '../type'
+import { NotificationType } from '@/features/notifications/types'
+import { sendEmailNotification } from '@/features/notifications/utils'
 
 const app = new Hono()
     .get('/', sessionMiddleware, zValidator('query', z.object({ workspaceId: z.string() })), async (c) => {
@@ -111,6 +116,36 @@ const app = new Hono()
             memberId
         );
 
+        // Notify the user they have been removed
+        if (memberToDelete.userId !== user.$id) {
+            const workspace = await databases.getDocument(
+                DATABASE_ID,
+                WORKSPACES_ID,
+                memberToDelete.workspaceId
+            );
+
+            await databases.createDocument(
+                DATABASE_ID,
+                NOTIFICATIONS_ID,
+                ID.unique(),
+                {
+                    userId: memberToDelete.userId,
+                    workspaceId: memberToDelete.workspaceId,
+                    title: 'Removed from workspace',
+                    message: `You have been removed from workspace: ${workspace.name}`,
+                    type: NotificationType.MEMBER_REMOVED,
+                    targetId: memberToDelete.workspaceId,
+                    isRead: false,
+                }
+            );
+
+            await sendEmailNotification({
+                userId: memberToDelete.userId,
+                title: 'Removed from workspace',
+                message: `You have been removed from workspace: ${workspace.name}`,
+            });
+        }
+
         return c.json({ data: {
             success: true,
             $id: memberId
@@ -170,6 +205,39 @@ const app = new Hono()
                 role
             }
         );
+
+        // Notify the user their role has changed
+        if (role !== memberToUpdate.role) {
+            const workspace = await databases.getDocument(
+                DATABASE_ID,
+                WORKSPACES_ID,
+                memberToUpdate.workspaceId
+            );
+
+            const title = role === MemberRole.ADMIN ? 'Role Upgraded' : 'Role Downgraded';
+            const message = `Your role has been changed to ${role} in workspace: ${workspace.name}`;
+
+            await databases.createDocument(
+                DATABASE_ID,
+                NOTIFICATIONS_ID,
+                ID.unique(),
+                {
+                    userId: memberToUpdate.userId,
+                    workspaceId: memberToUpdate.workspaceId,
+                    title,
+                    message,
+                    type: NotificationType.MEMBER_ROLE_CHANGED,
+                    targetId: memberToUpdate.workspaceId,
+                    isRead: false,
+                }
+            );
+
+            await sendEmailNotification({
+                userId: memberToUpdate.userId,
+                title,
+                message,
+            });
+        }
 
         return c.json({ data: {
             success: true,

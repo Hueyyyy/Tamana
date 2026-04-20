@@ -134,7 +134,7 @@ const app = new Hono()
     const user = c.get('user');
     const databases = c.get('databases');
     const { commentId } = c.req.param();
-    const { content } = c.req.valid('json');
+    const { content, tags } = c.req.valid('json');
 
     const comment = await databases.getDocument(
       DATABASE_ID,
@@ -153,8 +153,43 @@ const app = new Hono()
       commentId,
       {
         content,
+        tags: tags || [],
       }
     );
+
+    // Notifications for newly tagged users
+    if (tags && tags.length > 0) {
+      const existingTags = comment.tags || [];
+      const newTags = tags.filter((tagId: string) => !existingTags.includes(tagId));
+      const uniqueNewTags = Array.from(new Set(newTags));
+
+      await Promise.all(
+        uniqueNewTags.map(async (taggedUserId) => {
+          if (taggedUserId === user.$id) return;
+
+          await databases.createDocument(
+            DATABASE_ID,
+            NOTIFICATIONS_ID,
+            ID.unique(),
+            {
+              userId: taggedUserId,
+              workspaceId: comment.workspaceId,
+              title: 'Tagged in a comment',
+              message: `${user.name} tagged you in a comment.`,
+              type: NotificationType.COMMENT_TAG,
+              targetId: comment.taskId,
+              isRead: false,
+            }
+          );
+
+          await sendEmailNotification({
+            userId: taggedUserId,
+            title: 'Tagged in a comment',
+            message: `${user.name} tagged you in a comment. Click here to view: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${comment.workspaceId}/tasks/${comment.taskId}`,
+          });
+        })
+      );
+    }
 
     return c.json({ data: updatedComment });
   });

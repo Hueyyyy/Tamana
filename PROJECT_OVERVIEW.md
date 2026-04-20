@@ -135,10 +135,14 @@ The API is built using Hono, mounted at `/api`. This setup provides several bene
 
 ### 🔔 Notification System (April 2026)
 
-
 - **Real-time Alerts**: Integrated Appwrite Realtime to provide instant notifications to users.
-- **Activity Tracking**: Notifications are triggered for task assignments, unassignments, and task status changes.
-- **Notification Bell**: Added a global notification component with unread counts and quick actions.
+- **Comprehensive Activity Tracking**: Notifications are triggered for:
+  - Task assignments and status changes.
+  - Being tagged in a comment (@mentions).
+  - Being removed from a workspace.
+  - Having your role upgraded (to Admin) or downgraded (to Member).
+- **Email Integration**: Critical notifications (mentions, assignments, member events) also trigger email alerts.
+- **Notification Bell**: Global component with unread counts and smart linking based on notification type.
 
 ### 🔐 Profile & Security (April 2026)
 
