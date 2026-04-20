@@ -13,6 +13,7 @@ import { TaskBreadcrumbs } from '@/features/tasks/components/task-breadcrumbs';
 import { DottedSeparator } from '@/components/dotted-separator';
 import { TaskOverview } from '@/features/tasks/components/task-overview';
 import { TaskDescription } from '@/features/tasks/components/task-description';
+import { CommentSection } from '@/features/comments/components/comment-section';
 
 const TaskIdClient = () => {
   const taskId = useTaskId();
@@ -30,6 +31,8 @@ const TaskIdClient = () => {
         <TaskOverview task={task} />
         <TaskDescription task={task} />
       </div>
+      <DottedSeparator className="my-6" />
+      <CommentSection taskId={taskId} />
     </div>
   );
 };

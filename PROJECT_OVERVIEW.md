@@ -49,7 +49,8 @@ The project follows a **modular feature-based architecture**. Each core function
   - **Multiple Views**: Switch between List, Kanban (with drag-and-drop), and Calendar views.
   - **Filtering**: Filter tasks by status, assignee, project, and due date.
   - **Bulk Updates**: Support for updating task positions and statuses across the board.
-- **Real-time Notifications**: Instant alerts for task assignments, unassignments, and status changes.
+  - **Task Comments**: Collaborative thread for each task with member tagging and real-time updates.
+- **Real-time Notifications**: Instant alerts for task assignments, mentions in comments, and status changes.
 - **Analytics Dashboards**: Visual metrics for workspaces and projects showing task completion trends and overdue counts.
 - **Robust Authentication**: Secure sign-in/sign-up with Appwrite, including OAuth support.
 - **Member Management**: Invite members to workspaces via unique invite codes with Role-Based Access Control (RBAC).
@@ -113,9 +114,19 @@ The API is built using Hono, mounted at `/api`. This setup provides several bene
 
 ---
 
-## 📅 Recent Updates
+### 📅 Recent Updates
+
+### 💬 Task Comment System (April 2026)
+
+- **Collaborative Threading**: Each task now supports a full comment history.
+- **Rich CRUD Operations**: Users can create, edit, and delete comments with built-in safety confirmations.
+- **Role-Based Access Control**: Strict permissions ensure only authors can edit comments, while both authors and workspace admins can delete them.
+- **Smart Member Tagging**: Integrated `@mention` system with a real-time member selection dropdown. Supports names with spaces and provides visual highlighting of tags.
+- **Mention Notifications**: Automatically triggers in-app alerts and email notifications for tagged members.
+- **Polished UI**: Includes relative timestamps (e.g., "5 minutes ago"), "(edited)" indicators, and initials-based avatars for commentators.
 
 ### 🔔 Notification System (April 2026)
+
 
 - **Real-time Alerts**: Integrated Appwrite Realtime to provide instant notifications to users.
 - **Activity Tracking**: Notifications are triggered for task assignments, unassignments, and task status changes.

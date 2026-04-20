@@ -4,6 +4,7 @@ export enum NotificationType {
   TASK_ASSIGNED = 'TASK_ASSIGNED',
   TASK_UNASSIGNED = 'TASK_UNASSIGNED',
   STATUS_UPDATED = 'STATUS_UPDATED',
+  COMMENT_TAG = 'COMMENT_TAG',
 }
 
 export type Notification = Models.Document & {
