@@ -10,8 +10,8 @@ type RequestType = InferRequestType<(typeof client.api.comments)['$post']>;
 export const useCreateComment = () => {
   const queryClient = useQueryClient();
   const mutation = useMutation<ResponseType, Error, RequestType>({
-    mutationFn: async ({ json }) => {
-      const response = await client.api.comments['$post']({ json });
+    mutationFn: async ({ form }) => {
+      const response = await client.api.comments['$post']({ form });
 
       if (!response.ok) {
         throw new Error('Failed to create comment');
@@ -19,10 +19,10 @@ export const useCreateComment = () => {
 
       return await response.json();
     },
-    onSuccess: (_, { json }) => {
+    onSuccess: (data) => {
       toast.success('Comment added!');
       queryClient.invalidateQueries({
-        queryKey: ['comments', json.taskId],
+        queryKey: ['comments', data.data.taskId],
       });
     },
     onError: () => {

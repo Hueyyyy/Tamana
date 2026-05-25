@@ -6,6 +6,9 @@ export type Comment = Models.Document & {
   workspaceId: string;
   userId: string;
   tags?: string[];
+  imageUrl?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
 }
 
 export type PopulatedComment = Comment & {

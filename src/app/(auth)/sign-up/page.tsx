@@ -9,4 +9,5 @@ const SignUpPage = async () => {
   return <SignUpCard />
 }
 
-export default SignUpPage
+// Sign up page component
+export default SignUpPage;

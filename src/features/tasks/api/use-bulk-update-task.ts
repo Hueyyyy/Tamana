@@ -15,7 +15,8 @@ export const useBulkUpdateTask = () => {
       const response = await client.api.tasks['bulk-update']['$post']({ json })
 
       if (!response.ok) {
-        throw new Error('Failed to update tasks')
+        const errorData = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(errorData?.error || 'Failed to update tasks')
       }
 
       return await response.json()
@@ -32,8 +33,8 @@ export const useBulkUpdateTask = () => {
         queryKey: ['workspace-analytics'],
       })
     },
-    onError: () => {
-      toast.error(`Failed to update tasks`)
+    onError: (error) => {
+      toast.error(error.message)
     },
   })
 

@@ -49,6 +49,7 @@ interface CreateTaskFormProps {
   memberOptions: { id: string; name: string }[];
   initialStatus?: TaskStatus;
   projectId?: string;
+  parentId?: string;
 }
 
 export const CreateTaskForm = ({
@@ -57,6 +58,7 @@ export const CreateTaskForm = ({
   memberOptions,
   initialStatus,
   projectId,
+  parentId,
 }: CreateTaskFormProps) => {
   const workspaceId = useWorkspaceId();
   const { mutate, isPending } = useCreateTask();
@@ -67,6 +69,7 @@ export const CreateTaskForm = ({
       workspaceId,
       projectId,
       status: initialStatus,
+      parentId,
     },
   });
 
@@ -200,6 +203,7 @@ export const CreateTaskForm = ({
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={projectId}
+                      disabled={!!parentId}
                     >
                       <FormControl>
                         <SelectTrigger>

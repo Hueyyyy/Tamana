@@ -17,16 +17,23 @@ export const useCreateTaskModal = () => {
     parseAsString.withOptions({ clearOnDefault: true }),
   )
 
-  const open = (initialStatus?: TaskStatus, projectId?: string) => {
+  const [parentId, setParentId] = useQueryState(
+    'parent-id',
+    parseAsString.withOptions({ clearOnDefault: true }),
+  )
+
+  const open = (initialStatus?: TaskStatus, projectId?: string, parentId?: string) => {
     setIsOpen(true)
     setInitialStatus(initialStatus ?? null)
     setProjectId(projectId ?? null)
+    setParentId(parentId ?? null)
   }
   const close = () => {
     setIsOpen(false)
     setInitialStatus(null)
     setProjectId(null)
+    setParentId(null)
   }
 
-  return { isOpen, open, close, setIsOpen, initialStatus, projectId }
+  return { isOpen, open, close, setIsOpen, initialStatus, projectId, parentId }
 }

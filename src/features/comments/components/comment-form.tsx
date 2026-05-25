@@ -18,7 +18,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useWorkspaceId } from '@/features/workspaces/hooks/use-workspace-id';
 import { useGetMembers } from '@/features/members/api/use-get-members';
 import { useCurrent } from '@/features/auth/api/use-current';
-import { Send, AtSign } from 'lucide-react';
+import { Send, AtSign, ImageIcon, Paperclip, Upload as UploadIcon, X } from 'lucide-react';
+import Image from 'next/image';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Member } from '@/features/members/type';
 import { cn } from '@/lib/utils';
@@ -32,6 +33,61 @@ export const CommentForm = ({ taskId }: CommentFormProps) => {
   const { data: user } = useCurrent();
   const { data: members } = useGetMembers({ workspaceId });
   const { mutate, isPending } = useCreateComment();
+
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [selectedAttachments, setSelectedAttachments] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      const newImages: File[] = [];
+      const newAttachments: File[] = [];
+      files.forEach((file) => {
+        if (file.type.startsWith('image/')) {
+          newImages.push(file);
+        } else {
+          newAttachments.push(file);
+        }
+      });
+      if (newImages.length > 0) setSelectedImages((prev) => [...prev, ...newImages]);
+      if (newAttachments.length > 0) setSelectedAttachments((prev) => [...prev, ...newAttachments]);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData.items;
+    let hasImages = false;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) {
+          setSelectedImages((prev) => [...prev, file]);
+          hasImages = true;
+        }
+      }
+    }
+    if (hasImages) {
+      e.preventDefault();
+    }
+  };
 
   const [showMentions, setShowMentions] = useState(false);
   const [mentionFilter, setMentionFilter] = useState('');
@@ -51,6 +107,9 @@ export const CommentForm = ({ taskId }: CommentFormProps) => {
   });
 
   const content = form.watch('content');
+  const hasContent = !!(content && content.trim().length > 0);
+  const hasFiles = selectedImages.length > 0 || selectedAttachments.length > 0;
+  const isSubmitDisabled = isPending || (!hasContent && !hasFiles);
 
   const filteredMembers =
     members?.documents
@@ -136,24 +195,67 @@ export const CommentForm = ({ taskId }: CommentFormProps) => {
   };
 
   const onSubmit = (values: z.infer<typeof createCommentSchema>) => {
+    const hasContent = values.content && values.content.trim().length > 0;
+    const hasFiles = selectedImages.length > 0 || selectedAttachments.length > 0;
+
+    if (!hasContent && !hasFiles) {
+      return;
+    }
     // Final check for tags in content (in case user deleted some text)
     const finalTags = (values.tags || []).filter((tagId) => {
       const member = members?.documents.find((m) => m.userId === tagId);
       return member && values.content.includes(`@${member.name}`);
     });
 
+    const finalData = {
+      content: values.content,
+      taskId: values.taskId,
+      workspaceId: values.workspaceId,
+      tags: JSON.stringify(finalTags),
+      image: selectedImages.length > 0 ? selectedImages : undefined,
+      attachment: selectedAttachments.length > 0 ? selectedAttachments : undefined,
+    };
+
     mutate(
-      { json: { ...values, tags: finalTags } },
+      { 
+        form: finalData as {
+          content: string;
+          taskId: string;
+          workspaceId: string;
+          tags?: string;
+          image?: File | File[] | string;
+          attachment?: File | File[] | string;
+        }
+      },
       {
         onSuccess: () => {
           form.reset();
+          setSelectedImages([]);
+          setSelectedAttachments([]);
+          if (imageInputRef.current) imageInputRef.current.value = '';
+          if (attachmentInputRef.current) attachmentInputRef.current.value = '';
         },
       },
     );
   };
 
   return (
-    <div className="flex flex-col gap-y-4 relative">
+    <div 
+      className="flex flex-col gap-y-4 relative"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {isDragging && (
+        <div 
+          className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/90 backdrop-blur-sm border-2 border-dashed border-primary rounded-md pointer-events-none transition duration-200"
+        >
+          <UploadIcon className="size-8 text-muted-foreground animate-bounce mb-2" />
+          <p className="text-sm font-semibold text-muted-foreground">
+            Drop your image or file here
+          </p>
+        </div>
+      )}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
@@ -207,7 +309,8 @@ export const CommentForm = ({ taskId }: CommentFormProps) => {
                       onClick={(e) => {
                         setCursorPosition(e.currentTarget.selectionStart);
                       }}
-                      placeholder="Write a comment... use @ to tag members"
+                      onPaste={handlePaste}
+                      placeholder="Write a comment... use @ to tag members, paste images, or drag files here"
                       disabled={isPending}
                       className="min-h-[100px] resize-none pr-10"
                     />
@@ -220,8 +323,105 @@ export const CommentForm = ({ taskId }: CommentFormProps) => {
               </FormItem>
             )}
           />
-          <div className="flex justify-end">
-            <Button disabled={isPending} size="sm">
+
+          {/* Previews */}
+          {(selectedImages.length > 0 || selectedAttachments.length > 0) && (
+            <div className="flex flex-wrap gap-2">
+              {selectedImages.map((image, idx) => (
+                <div key={idx} className="relative size-20 rounded-md border overflow-hidden group">
+                  <Image
+                    src={URL.createObjectURL(image)}
+                    alt="Uploaded preview"
+                    fill
+                    className="object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedImages((prev) => prev.filter((_, i) => i !== idx));
+                    }}
+                    className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 transition"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </div>
+              ))}
+              {selectedAttachments.map((attachment, idx) => (
+                <div key={idx} className="flex items-center gap-x-2 bg-neutral-50 border rounded-md p-2 max-w-xs relative pr-8 group">
+                  <Paperclip className="size-4 text-muted-foreground shrink-0" />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-medium truncate">
+                      {attachment.name}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {(attachment.size / 1024).toFixed(1)} KB
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedAttachments((prev) => prev.filter((_, i) => i !== idx));
+                    }}
+                    className="absolute top-1/2 -translate-y-1/2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 transition"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-x-2">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                ref={imageInputRef}
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || []);
+                  if (files.length > 0) {
+                    setSelectedImages((prev) => [...prev, ...files]);
+                  }
+                  e.target.value = '';
+                }}
+              />
+              <input
+                type="file"
+                multiple
+                className="hidden"
+                ref={attachmentInputRef}
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || []);
+                  if (files.length > 0) {
+                    setSelectedAttachments((prev) => [...prev, ...files]);
+                  }
+                  e.target.value = '';
+                }}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-primary hover:bg-neutral-100"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={isPending}
+              >
+                <ImageIcon className="size-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-primary hover:bg-neutral-100"
+                onClick={() => attachmentInputRef.current?.click()}
+                disabled={isPending}
+              >
+                <Paperclip className="size-4" />
+              </Button>
+            </div>
+            <Button disabled={isSubmitDisabled} size="sm">
               <Send className="size-4 mr-2" />
               Comment
             </Button>

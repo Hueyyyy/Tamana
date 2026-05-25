@@ -29,17 +29,19 @@ export const ActivityLog = ({ taskId }: ActivityLogProps) => {
         <DottedSeparator />
       </div>
 
-      {documents.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-lg">
-          <p className="text-sm text-muted-foreground">No activity recorded yet</p>
-        </div>
-      ) : (
-        <div className="flex flex-col divide-y divide-neutral-200">
-          {documents.map((activity) => (
-            <ActivityItem key={activity.$id} activity={activity} />
-          ))}
-        </div>
-      )}
+      <div className="max-h-[350px] overflow-y-auto hide-scrollbar">
+        {documents.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-lg">
+            <p className="text-sm text-muted-foreground">No activity recorded yet</p>
+          </div>
+        ) : (
+          <div className="flex flex-col divide-y divide-neutral-200">
+            {documents.map((activity) => (
+              <ActivityItem key={activity.$id} activity={activity} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

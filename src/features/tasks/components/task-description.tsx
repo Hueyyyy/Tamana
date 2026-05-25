@@ -1,5 +1,6 @@
 //React
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { useClickAway } from 'react-use';
 
 //Types
 import { Task } from '../types';
@@ -25,9 +26,25 @@ interface TaskDescriptionProps {
 export const TaskDescription = ({ task }: TaskDescriptionProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(task.description);
+  const editContainerRef = useRef<HTMLDivElement>(null);
 
   const { mutate: updateTask, isPending: isPendingUpdateTask } =
     useUpdateTask();
+
+  useClickAway(editContainerRef, () => {
+    if (isEditing) {
+      setIsEditing(false);
+      setValue(task.description);
+    }
+  });
+
+  const handleDescriptionClick = () => {
+    const selection = window.getSelection();
+    if (selection && selection.toString().length > 0) {
+      return;
+    }
+    setIsEditing(true);
+  };
 
   const onToggleEdit = () => {
     setIsEditing((prev) => !prev);
@@ -67,7 +84,7 @@ export const TaskDescription = ({ task }: TaskDescriptionProps) => {
       </div>
       <DottedSeparator className="my-4" />
       {isEditing ? (
-        <div className="flex flex-col gap-y-4">
+        <div ref={editContainerRef} className="flex flex-col gap-y-4">
           <Textarea
             placeholder="Add a description..."
             value={value}
@@ -95,7 +112,10 @@ export const TaskDescription = ({ task }: TaskDescriptionProps) => {
           </div>
         </div>
       ) : (
-        <div>
+        <div
+          onClick={handleDescriptionClick}
+          className="cursor-pointer hover:bg-muted/30 p-2 rounded transition min-h-[100px]"
+        >
           {task.description || (
             <span className="text-muted-foreground">No description set</span>
           )}

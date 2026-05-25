@@ -8,6 +8,22 @@ import { OverviewProperty } from './overview-property';
 import { MemberAvatar } from '@/features/members/components/member-avatar';
 import { TaskDate } from './task-date';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useUpdateTask } from '../api/use-update-task';
+import { TaskStatus } from '../types';
+
+const orderedStatuses = [
+  TaskStatus.BACKLOG,
+  TaskStatus.TODO,
+  TaskStatus.IN_PROGRESS,
+  TaskStatus.IN_REVIEW,
+  TaskStatus.DONE,
+];
 
 //Icons
 import { PencilIcon } from 'lucide-react';
@@ -24,6 +40,15 @@ interface TaskOverviewProps {
 
 export const TaskOverview = ({ task }: TaskOverviewProps) => {
   const { open } = useEditTaskModal();
+  const { mutate: updateTask, isPending: isUpdating } = useUpdateTask();
+
+  const handleStatusChange = (status: TaskStatus) => {
+    updateTask({
+      param: { taskId: task.$id },
+      json: { status },
+    });
+  };
+
   return (
     <div className="flex flex-col gap-y-4 col-span-1">
       <div className="bg-muted rounded-lg p-4">
@@ -48,9 +73,32 @@ export const TaskOverview = ({ task }: TaskOverviewProps) => {
             <TaskDate value={task.dueDate} className="text-sm font-medium" />
           </OverviewProperty>
           <OverviewProperty label="Status">
-            <Badge variant={task.status}>
-              {snakeCaseToTitleCase(task.status)}
-            </Badge>
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <button className="focus:outline-none disabled:opacity-50" disabled={isUpdating}>
+                  <Badge variant={task.status} className="hover:opacity-85 cursor-pointer transition select-none">
+                    {snakeCaseToTitleCase(task.status)}
+                  </Badge>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-36">
+                {orderedStatuses.map((status) => (
+                  <DropdownMenuItem
+                    key={status}
+                    onClick={() => handleStatusChange(status)}
+                    className="cursor-pointer p-1"
+                    disabled={task.status === status}
+                  >
+                    <Badge
+                      variant={status}
+                      className="w-full text-center justify-center text-[10px] uppercase font-semibold tracking-wider py-1 pointer-events-none"
+                    >
+                      {snakeCaseToTitleCase(status)}
+                    </Badge>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </OverviewProperty>
         </div>
       </div>

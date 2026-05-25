@@ -54,6 +54,23 @@ const app = new Hono()
             }, 401)
         }
 
+        // Cascade delete sub-tasks
+        try {
+            const subTasks = await databases.listDocuments<Task>(
+                DATABASE_ID,
+                TASKS_ID,
+                [Query.equal('parentId', taskId)]
+            )
+            
+            await Promise.all(
+                subTasks.documents.map((subTask) =>
+                    databases.deleteDocument(DATABASE_ID, TASKS_ID, subTask.$id)
+                )
+            )
+        } catch (error) {
+            console.error("Failed to cascade delete subtasks:", error)
+        }
+
         await databases.deleteDocument(
             DATABASE_ID,
             TASKS_ID,
@@ -73,11 +90,12 @@ const app = new Hono()
         status: z.nativeEnum(TaskStatus).nullish(),
         search: z.string().nullish(),
         dueDate: z.string().nullish(),      
+        parentId: z.string().nullish(),
     })), async (c) => {
         const { users } = await createAdminClient()
         const user = c.get('user')
         const databases = c.get('databases')
-        const {workspaceId, projectId, assigneeId, status, search, dueDate} = c.req.valid('query')
+        const {workspaceId, projectId, assigneeId, status, search, dueDate, parentId} = c.req.valid('query')
 
         const member = await getMember({
             userId: user.$id,
@@ -95,6 +113,12 @@ const app = new Hono()
             Query.equal('workspaceId', workspaceId),
             Query.orderDesc('$createdAt'),
         ]
+
+        if (parentId) {
+            query.push(Query.equal('parentId', parentId))
+        } else {
+            query.push(Query.isNull('parentId'))
+        }
 
         if(projectId){
             query.push(Query.equal('projectId', projectId))
@@ -210,18 +234,32 @@ const app = new Hono()
             email: assigneeUser.email
         }
 
+        let parentTask = null;
+        if (task.parentId) {
+            try {
+                parentTask = await databases.getDocument<Task>(
+                    DATABASE_ID,
+                    TASKS_ID,
+                    task.parentId
+                )
+            } catch (error) {
+                console.error("Failed to fetch parent task:", error)
+            }
+        }
+
         return c.json({
             data: {
                 ...task,
                 project,
-                assignee
+                assignee,
+                parentTask
             }
         })
     })
     .post('/', sessionMiddleware, zValidator('json', createTaskSchema), async (c) => {
         const user = c.get('user')
         const databases = c.get('databases')
-        const {name, description, status, assigneeId, dueDate, projectId, workspaceId} = c.req.valid('json')
+        const {name, description, status, assigneeId, dueDate, projectId, workspaceId, parentId} = c.req.valid('json')
 
         const member = await getMember({
             userId: user.$id,
@@ -233,6 +271,19 @@ const app = new Hono()
             return c.json({
                 error: 'Unauthorized'
             }, 401)
+        }
+
+        if (parentId) {
+            const parentTaskDoc = await databases.getDocument<Task>(
+                DATABASE_ID,
+                TASKS_ID,
+                parentId
+            )
+            if (parentTaskDoc.parentId) {
+                return c.json({
+                    error: 'Sub-tasks cannot have sub-tasks'
+                }, 400)
+            }
         }
 
         const highestPositionTask = await databases.listDocuments(
@@ -262,6 +313,7 @@ const app = new Hono()
                 projectId,
                 workspaceId,
                 position: newPosition,
+                parentId,
             }
         )
 
@@ -314,7 +366,7 @@ const app = new Hono()
     .patch('/:taskId', sessionMiddleware, zValidator('json', createTaskSchema.partial()), async (c) => {
         const user = c.get('user')
         const databases = c.get('databases')
-        const {name, description, status, assigneeId, dueDate, projectId} = c.req.valid('json')
+        const {name, description, status, assigneeId, dueDate, projectId, parentId} = c.req.valid('json')
         const { taskId } = c.req.param()
 
         const existingTask = await databases.getDocument<Task>(
@@ -335,6 +387,34 @@ const app = new Hono()
             }, 401)
         }
 
+        if (parentId) {
+            const parentTaskDoc = await databases.getDocument<Task>(
+                DATABASE_ID,
+                TASKS_ID,
+                parentId
+            )
+            if (parentTaskDoc.parentId) {
+                return c.json({
+                    error: 'Sub-tasks cannot have sub-tasks'
+                }, 400)
+            }
+        }
+        if (status === TaskStatus.DONE) {
+            const subTasks = await databases.listDocuments<Task>(
+                DATABASE_ID,
+                TASKS_ID,
+                [Query.equal('parentId', taskId)]
+            )
+            const hasUncompletedSubTasks = subTasks.documents.some(
+                (subTask) => subTask.status !== TaskStatus.DONE
+            )
+            if (hasUncompletedSubTasks) {
+                return c.json({
+                    error: 'Cannot mark task as done: all of its sub-tasks must be done first'
+                }, 400)
+            }
+        }
+
         const task = await databases.updateDocument(
             DATABASE_ID,
             TASKS_ID,
@@ -345,7 +425,8 @@ const app = new Hono()
                 status,
                 assigneeId,
                 dueDate,
-                projectId
+                projectId,
+                parentId,
             }
         )
 
@@ -616,6 +697,27 @@ const app = new Hono()
             return c.json({
                 error: 'Unauthorized'
             }, 401)
+        }
+
+        // Check that any parent task being updated to DONE has all sub-tasks completed
+        for (const task of tasks) {
+            if (task.status === TaskStatus.DONE) {
+                const subTasks = await databases.listDocuments<Task>(
+                    DATABASE_ID,
+                    TASKS_ID,
+                    [Query.equal('parentId', task.$id)]
+                )
+                const hasUncompletedSubTasks = subTasks.documents.some(
+                    (subTask) => subTask.status !== TaskStatus.DONE
+                )
+                if (hasUncompletedSubTasks) {
+                    const originalTask = taskToUpdate.documents.find(t => t.$id === task.$id)
+                    const taskName = originalTask ? `"${originalTask.name}"` : 'Task'
+                    return c.json({
+                        error: `Cannot mark ${taskName} as done: all of its sub-tasks must be done first`
+                    }, 400)
+                }
+            }
         }
 
         const updatedTasks = await Promise.all(

@@ -15,8 +15,29 @@ import { MemberAvatar } from '@/features/members/components/member-avatar';
 import { Badge } from '@/components/ui/badge';
 import { TaskActions } from './task-actions';
 
+import Link from 'next/link';
+
+import { useTaskDetailModal } from '../hooks/use-task-detail-modal';
+
 // utils
 import { snakeCaseToTitleCase } from '@/lib/utils';
+
+interface TaskNameCellProps {
+  name: string;
+  id: string;
+}
+
+const TaskNameCell = ({ name, id }: TaskNameCellProps) => {
+  const { open } = useTaskDetailModal();
+  return (
+    <span
+      onClick={() => open(id)}
+      className="font-medium hover:underline text-primary cursor-pointer line-clamp-1 max-w-[300px]"
+    >
+      {name}
+    </span>
+  );
+};
 
 export const Columns: ColumnDef<Task>[] = [
   {
@@ -31,6 +52,12 @@ export const Columns: ColumnDef<Task>[] = [
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       );
+    },
+    cell: ({ row }) => {
+      const name = row.original.name;
+      const id = row.original.$id;
+
+      return <TaskNameCell name={name} id={id} />;
     },
   },
   {
@@ -48,15 +75,18 @@ export const Columns: ColumnDef<Task>[] = [
     },
     cell: ({ row }) => {
       const project = row.original.project;
+      const workspaceId = row.original.workspaceId;
       return (
-        <div className="flex items-center gap-x-2 text-sm font-medium">
-          <ProjectAvatar
-            name={project.name}
-            className="size-6"
-            image={project.imageUrl}
-          />
-          <p className="truncate max-w-[200px] line-clamp-1">{project.name}</p>
-        </div>
+        <Link href={`/workspaces/${workspaceId}/projects/${project.$id}`}>
+          <div className="flex items-center gap-x-2 text-sm font-medium hover:underline cursor-pointer">
+            <ProjectAvatar
+              name={project.name}
+              className="size-6"
+              image={project.imageUrl}
+            />
+            <p className="truncate max-w-[200px] line-clamp-1">{project.name}</p>
+          </div>
+        </Link>
       );
     },
   },

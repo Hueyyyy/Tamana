@@ -15,7 +15,8 @@ export const useUpdateTask = () => {
       const response = await client.api.tasks[':taskId']['$patch']({ json, param })
 
       if (!response.ok) {
-        throw new Error('Failed to update task')
+        const errorData = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(errorData?.error || 'Failed to update task')
       }
 
       return await response.json()
@@ -35,8 +36,8 @@ export const useUpdateTask = () => {
         queryKey: ['workspace-analytics'],
       })
     },
-    onError: () => {
-      toast.error(`Failed to update task`)
+    onError: (error) => {
+      toast.error(error.message)
     },
   })
 

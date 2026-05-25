@@ -10,11 +10,12 @@ interface UseGetTasksProps {
     status?: TaskStatus | null
     dueDate?: string | null
     search?: string | null
+    parentId?: string | null
 }
 
-export const useGetTasks = ({workspaceId, projectId, assigneeId, status, dueDate, search}: UseGetTasksProps) => {
+export const useGetTasks = ({workspaceId, projectId, assigneeId, status, dueDate, search, parentId}: UseGetTasksProps) => {
   const query = useQuery({
-    queryKey: ['tasks', workspaceId, projectId, assigneeId, status, dueDate, search ],
+    queryKey: ['tasks', workspaceId, projectId, assigneeId, status, dueDate, search, parentId ],
     queryFn: async () => {
       const response = await client.api.tasks.$get({
         query : {
@@ -24,6 +25,7 @@ export const useGetTasks = ({workspaceId, projectId, assigneeId, status, dueDate
             status: status ?? undefined,
             dueDate: dueDate ?? undefined,
             search: search ?? undefined,
+            parentId: parentId ?? undefined,
         }
       })
 

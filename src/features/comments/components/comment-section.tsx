@@ -14,8 +14,12 @@ interface CommentSectionProps {
 
 export const CommentSection = ({ taskId }: CommentSectionProps) => {
   const workspaceId = useWorkspaceId();
-  const { data: comments, isLoading: isLoadingComments } = useGetComments({ taskId });
-  const { data: members, isLoading: isLoadingMembers } = useGetMembers({ workspaceId });
+  const { data: comments, isLoading: isLoadingComments } = useGetComments({
+    taskId,
+  });
+  const { data: members, isLoading: isLoadingMembers } = useGetMembers({
+    workspaceId,
+  });
 
   const isLoading = isLoadingComments || isLoadingMembers;
 
@@ -26,7 +30,7 @@ export const CommentSection = ({ taskId }: CommentSectionProps) => {
         <DottedSeparator />
       </div>
 
-      <div className="pr-4">
+      <div>
         <CommentForm taskId={taskId} />
       </div>
 
@@ -36,10 +40,10 @@ export const CommentSection = ({ taskId }: CommentSectionProps) => {
         </div>
       ) : (
         /* Use a regular div with overflow-y-auto for more predictable overflow behavior */
-        <div className="max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
-          <div className="pb-40 flex flex-col gap-y-4">
-            <CommentList 
-              comments={comments?.documents || []} 
+        <div className="max-h-[400px] overflow-y-auto hide-scrollbar">
+          <div className="flex flex-col gap-y-4">
+            <CommentList
+              comments={comments?.documents || []}
               members={members?.documents || []}
             />
           </div>

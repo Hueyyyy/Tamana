@@ -16,4 +16,5 @@ const SignInPage = async ({ searchParams }: SignInPageProps) => {
   return <SignInCard />
 }
 
-export default SignInPage
+// Sign in page component
+export default SignInPage;

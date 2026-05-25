@@ -17,4 +17,6 @@ export type Task = Models.Document & {
   position: number;
   workspaceId: string;
   description?: string;
+  parentId?: string | null;
+  parentTask?: Task | null;
 }

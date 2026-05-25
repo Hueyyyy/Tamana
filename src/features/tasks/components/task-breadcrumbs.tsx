@@ -70,6 +70,17 @@ export const TaskBreadcrumbs = ({ project, task }: TaskBreadcrumbsProps) => {
           </p>
         </Link>
       </div>
+      {task.parentTask && (
+        <>
+          <ChevronRight className="size-4 lg:size-5 text-muted-foreground" />
+          <Link
+            href={`/workspaces/${workspaceId}/tasks/${task.parentTask.$id}`}
+            className="text-muted-foreground hover:opacity-75 transition truncate text-sm lg:text-lg font-semibold max-w-[150px]"
+          >
+            {task.parentTask.name}
+          </Link>
+        </>
+      )}
       <ChevronRight className="size-4 lg:size-5 text-muted-foreground" />
       <p className="text-sm lg:text-lg font-semibold truncate">{task.name}</p>
       <Button

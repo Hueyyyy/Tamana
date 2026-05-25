@@ -6,7 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Trash, Pencil, X, Check } from 'lucide-react';
+import { Trash, Pencil, X, Check, Paperclip } from 'lucide-react';
 import { useDeleteComment } from '../api/use-delete-comment';
 import { useUpdateComment } from '../api/use-update-comment';
 import { useCurrent } from '@/features/auth/api/use-current';
@@ -14,16 +14,46 @@ import { useGetMemberInfo } from '@/features/members/api/use-get-member-info';
 import useConfirm from '@/hooks/use-confirm';
 import { Member } from '@/features/members/type';
 import { cn } from '@/lib/utils';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 interface CommentItemProps {
   comment: PopulatedComment;
   members: Member[];
 }
 
+function parseSerializedArray(value?: string): string[] {
+  if (!value) return [];
+  if (value.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    } catch {
+      // fallback
+    }
+  }
+  return [value];
+}
+
 export const CommentItem = ({ comment, members }: CommentItemProps) => {
+  const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   const [editTags, setEditTags] = useState<string[]>(comment.tags || []);
+
+  const [editImages, setEditImages] = useState<string[]>([]);
+  const [editAttachments, setEditAttachments] = useState<string[]>([]);
+  const [editAttachmentNames, setEditAttachmentNames] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (isEditing) {
+      setEditImages(parseSerializedArray(comment.imageUrl));
+      setEditAttachments(parseSerializedArray(comment.attachmentUrl));
+      setEditAttachmentNames(parseSerializedArray(comment.attachmentName));
+    }
+  }, [isEditing, comment.imageUrl, comment.attachmentUrl, comment.attachmentName]);
 
   const [showMentions, setShowMentions] = useState(false);
   const [mentionFilter, setMentionFilter] = useState('');
@@ -139,13 +169,26 @@ export const CommentItem = ({ comment, members }: CommentItemProps) => {
   };
 
   const handleUpdate = () => {
+    const hasContent = editContent && editContent.trim().length > 0;
+    const hasFiles = editImages.length > 0 || editAttachments.length > 0;
+
+    if (!hasContent && !hasFiles) {
+      toast.error('Comment must contain text or a file attachment');
+      return;
+    }
+
+    const updatedImageUrl = editImages.length > 0 ? JSON.stringify(editImages) : null;
+    const updatedAttachmentUrl = editAttachments.length > 0 ? JSON.stringify(editAttachments) : null;
+    const updatedAttachmentName = editAttachmentNames.length > 0 ? JSON.stringify(editAttachmentNames) : null;
+
     if (
-      editContent.trim() === '' ||
-      (editContent === comment.content &&
-        JSON.stringify(editTags) === JSON.stringify(comment.tags))
+      editContent === comment.content &&
+      JSON.stringify(editTags) === JSON.stringify(comment.tags) &&
+      updatedImageUrl === (comment.imageUrl || null) &&
+      updatedAttachmentUrl === (comment.attachmentUrl || null) &&
+      updatedAttachmentName === (comment.attachmentName || null)
     ) {
       setIsEditing(false);
-      setEditContent(comment.content);
       return;
     }
 
@@ -161,6 +204,9 @@ export const CommentItem = ({ comment, members }: CommentItemProps) => {
         json: {
           content: editContent,
           tags: finalTags,
+          imageUrl: updatedImageUrl,
+          attachmentUrl: updatedAttachmentUrl,
+          attachmentName: updatedAttachmentName,
         },
       },
       {
@@ -319,6 +365,51 @@ export const CommentItem = ({ comment, members }: CommentItemProps) => {
                 className="min-h-[80px] resize-none"
               />
             </div>
+            {/* Previews while editing */}
+            {(editImages.length > 0 || editAttachments.length > 0) && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {editImages.map((url, idx) => (
+                  <div key={idx} className="relative size-16 rounded-md border overflow-hidden group bg-neutral-50">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={url}
+                      alt="Edit preview"
+                      className="object-cover w-full h-full"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditImages((prev) => prev.filter((_, i) => i !== idx));
+                      }}
+                      className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 transition"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ))}
+                {editAttachments.map((url, idx) => {
+                  const name = editAttachmentNames[idx] || `Attachment ${idx + 1}`;
+                  return (
+                    <div key={idx} className="flex items-center gap-x-2 bg-neutral-50 border rounded-md p-2 max-w-xs relative pr-8 group">
+                      <Paperclip className="size-4 text-muted-foreground shrink-0" />
+                      <span className="text-xs font-medium truncate max-w-[120px]">
+                        {name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditAttachments((prev) => prev.filter((_, i) => i !== idx));
+                          setEditAttachmentNames((prev) => prev.filter((_, i) => i !== idx));
+                        }}
+                        className="absolute top-1/2 -translate-y-1/2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 transition"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             <div className="flex justify-end gap-x-2">
               <Button
                 variant="outline"
@@ -336,11 +427,80 @@ export const CommentItem = ({ comment, members }: CommentItemProps) => {
             </div>
           </div>
         ) : (
-          <p className="text-sm text-neutral-700 whitespace-pre-wrap">
-            {formatContent(comment.content)}
-          </p>
+          <div className="flex flex-col">
+            <p className="text-sm text-neutral-700 whitespace-pre-wrap">
+              {formatContent(comment.content)}
+            </p>
+            {comment.imageUrl && (() => {
+              const images = parseSerializedArray(comment.imageUrl);
+              return images.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {images.map((url, idx) => (
+                    <div key={idx} className="relative max-w-[200px] rounded-md overflow-hidden border bg-neutral-50 group transition duration-200">
+                      <button
+                        type="button"
+                        onClick={() => setActiveImageUrl(url)}
+                        className="focus:outline-none w-full h-full flex items-center justify-center"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={url}
+                          alt={`Attachment ${idx + 1}`}
+                          className="max-h-40 object-contain hover:scale-[1.02] transition duration-200 cursor-zoom-in"
+                        />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+            {comment.attachmentUrl && (() => {
+              const urls = parseSerializedArray(comment.attachmentUrl);
+              const names = parseSerializedArray(comment.attachmentName);
+              return urls.length > 0 && (
+                <div className="mt-3 flex flex-col gap-2">
+                  {urls.map((url, idx) => {
+                    const name = names[idx] || `Attachment ${idx + 1}`;
+                    return (
+                      <div key={idx} className="flex items-center gap-x-2 bg-neutral-50 border rounded-md p-3 max-w-xs hover:bg-neutral-100 transition">
+                        <Paperclip className="size-5 text-muted-foreground shrink-0" />
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <span className="text-sm font-medium truncate text-neutral-800">
+                            {name}
+                          </span>
+                          <a
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:underline w-fit"
+                          >
+                            Download file
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
         )}
       </div>
+      <Dialog open={!!activeImageUrl} onOpenChange={(open) => { if (!open) setActiveImageUrl(null); }}>
+        <DialogContent className="max-w-3xl p-1 bg-neutral-900 border-neutral-800 text-white">
+          <DialogTitle className="sr-only">Image Preview</DialogTitle>
+          <div className="relative flex items-center justify-center p-4">
+            {activeImageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={activeImageUrl}
+                alt="Preview"
+                className="max-h-[70vh] max-w-full object-contain rounded-md"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

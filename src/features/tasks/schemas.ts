@@ -9,4 +9,5 @@ export const createTaskSchema = z.object({
   assigneeId: z.string().trim().min(1,'Required'),
   dueDate: z.coerce.date(),
   projectId: z.string().trim().min(1,'Required'),
+  parentId: z.string().optional().nullable(),
 });
