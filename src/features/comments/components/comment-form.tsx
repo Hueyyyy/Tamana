@@ -268,9 +268,9 @@ export const CommentForm = ({ taskId }: CommentFormProps) => {
                     {showMentions && filteredMembers.length > 0 && (
                       <div
                         ref={dropdownRef}
-                        className="absolute top-full left-0 w-64 bg-white border rounded-md shadow-2xl z-[100] mt-1 overflow-hidden border-neutral-300"
+                        className="absolute top-full left-0 w-64 bg-white dark:bg-neutral-900 border rounded-md shadow-2xl z-[100] mt-1 overflow-hidden border-neutral-300 dark:border-neutral-800"
                       >
-                        <div className="p-2 text-xs font-semibold bg-neutral-50 border-b text-neutral-500">
+                        <div className="p-2 text-xs font-semibold bg-neutral-50 dark:bg-neutral-800 border-b dark:border-neutral-700 text-neutral-500 dark:text-neutral-400">
                           Mention someone...
                         </div>
                         {filteredMembers.map((member, index) => (
@@ -282,8 +282,8 @@ export const CommentForm = ({ taskId }: CommentFormProps) => {
                               insertMention(member);
                             }}
                             className={cn(
-                              'w-full flex items-center gap-x-2 p-2 hover:bg-neutral-100 transition text-left',
-                              index === activeIndex && 'bg-neutral-100',
+                              'w-full flex items-center gap-x-2 p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition text-left',
+                              index === activeIndex && 'bg-neutral-100 dark:bg-neutral-800',
                             )}
                           >
                             <Avatar className="size-6">
@@ -347,7 +347,7 @@ export const CommentForm = ({ taskId }: CommentFormProps) => {
                 </div>
               ))}
               {selectedAttachments.map((attachment, idx) => (
-                <div key={idx} className="flex items-center gap-x-2 bg-neutral-50 border rounded-md p-2 max-w-xs relative pr-8 group">
+                 <div key={idx} className="flex items-center gap-x-2 bg-neutral-50 dark:bg-neutral-800 border dark:border-neutral-700 rounded-md p-2 max-w-xs relative pr-8 group">
                   <Paperclip className="size-4 text-muted-foreground shrink-0" />
                   <div className="flex flex-col min-w-0">
                     <span className="text-xs font-medium truncate">
@@ -404,7 +404,7 @@ export const CommentForm = ({ taskId }: CommentFormProps) => {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 text-muted-foreground hover:text-primary hover:bg-neutral-100"
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-primary hover:bg-neutral-100 dark:hover:bg-neutral-800"
                 onClick={() => imageInputRef.current?.click()}
                 disabled={isPending}
               >
@@ -414,7 +414,7 @@ export const CommentForm = ({ taskId }: CommentFormProps) => {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 text-muted-foreground hover:text-primary hover:bg-neutral-100"
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-primary hover:bg-neutral-100 dark:hover:bg-neutral-800"
                 onClick={() => attachmentInputRef.current?.click()}
                 disabled={isPending}
               >

@@ -257,7 +257,7 @@ export const CommentItem = ({ comment, members }: CommentItemProps) => {
           return (
             <span
               key={index}
-              className="font-semibold text-neutral-950 bg-neutral-100 px-1 rounded-sm"
+              className="font-semibold text-neutral-950 dark:text-neutral-100 bg-neutral-100 dark:bg-neutral-800 px-1 rounded-sm"
             >
               {part}
             </span>
@@ -269,17 +269,17 @@ export const CommentItem = ({ comment, members }: CommentItemProps) => {
   };
 
   return (
-    <div className="flex gap-x-4 p-4 border rounded-lg bg-white shadow-sm relative">
+    <div className="flex gap-x-4 p-4 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 shadow-sm relative">
       <DeleteDialog />
       <Avatar className="size-10">
-        <AvatarFallback className="bg-neutral-200 text-neutral-500 font-medium flex items-center justify-center">
+        <AvatarFallback className="bg-neutral-200 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 font-medium flex items-center justify-center">
           {comment.userName.charAt(0).toUpperCase()}
         </AvatarFallback>
       </Avatar>
       <div className="flex flex-col flex-1 gap-y-1">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-x-2">
-            <p className="text-sm font-semibold text-neutral-900">
+            <p className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
               {comment.userName}
             </p>
             <span className="text-xs text-neutral-500">
@@ -321,10 +321,10 @@ export const CommentItem = ({ comment, members }: CommentItemProps) => {
               {showMentions && filteredMembers.length > 0 && (
                 <div 
                   ref={dropdownRef}
-                  className="absolute top-full left-0 w-64 bg-white border rounded-md shadow-2xl z-[100] mt-1 overflow-hidden border-neutral-300"
+                  className="absolute top-full left-0 w-64 bg-white dark:bg-neutral-900 border rounded-md shadow-2xl z-[100] mt-1 overflow-hidden border-neutral-300 dark:border-neutral-800"
                 >
 
-                  <div className="p-2 text-xs font-semibold bg-neutral-50 border-b text-neutral-500">
+                  <div className="p-2 text-xs font-semibold bg-neutral-50 dark:bg-neutral-800 border-b dark:border-neutral-700 text-neutral-500 dark:text-neutral-400">
                     Mention someone...
                   </div>
                   {filteredMembers.map((m, index) => (
@@ -336,8 +336,8 @@ export const CommentItem = ({ comment, members }: CommentItemProps) => {
                         insertEditMention(m);
                       }}
                       className={cn(
-                        'w-full flex items-center gap-x-2 p-2 hover:bg-neutral-100 transition text-left',
-                        index === activeIndex && 'bg-neutral-100',
+                        'w-full flex items-center gap-x-2 p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition text-left',
+                        index === activeIndex && 'bg-neutral-100 dark:bg-neutral-800',
                       )}
                     >
                       <Avatar className="size-6">
@@ -428,7 +428,7 @@ export const CommentItem = ({ comment, members }: CommentItemProps) => {
           </div>
         ) : (
           <div className="flex flex-col">
-            <p className="text-sm text-neutral-700 whitespace-pre-wrap">
+            <p className="text-sm text-neutral-700 dark:text-neutral-300 whitespace-pre-wrap">
               {formatContent(comment.content)}
             </p>
             {comment.imageUrl && (() => {
@@ -436,7 +436,7 @@ export const CommentItem = ({ comment, members }: CommentItemProps) => {
               return images.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {images.map((url, idx) => (
-                    <div key={idx} className="relative max-w-[200px] rounded-md overflow-hidden border bg-neutral-50 group transition duration-200">
+                    <div key={idx} className="relative max-w-[200px] rounded-md overflow-hidden border dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-800 group transition duration-200">
                       <button
                         type="button"
                         onClick={() => setActiveImageUrl(url)}
@@ -462,17 +462,17 @@ export const CommentItem = ({ comment, members }: CommentItemProps) => {
                   {urls.map((url, idx) => {
                     const name = names[idx] || `Attachment ${idx + 1}`;
                     return (
-                      <div key={idx} className="flex items-center gap-x-2 bg-neutral-50 border rounded-md p-3 max-w-xs hover:bg-neutral-100 transition">
+                      <div key={idx} className="flex items-center gap-x-2 bg-neutral-50 dark:bg-neutral-800 border dark:border-neutral-700 rounded-md p-3 max-w-xs hover:bg-neutral-100 dark:hover:bg-neutral-700 transition">
                         <Paperclip className="size-5 text-muted-foreground shrink-0" />
                         <div className="flex flex-col min-w-0 flex-1">
-                          <span className="text-sm font-medium truncate text-neutral-800">
+                          <span className="text-sm font-medium truncate text-neutral-800 dark:text-neutral-200">
                             {name}
                           </span>
                           <a
                             href={url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs text-blue-600 hover:underline w-fit"
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline w-fit"
                           >
                             Download file
                           </a>

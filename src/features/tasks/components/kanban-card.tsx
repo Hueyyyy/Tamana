@@ -18,7 +18,7 @@ export const KanbanCard = ({ task }: KanbanCardProps) => {
   const priority = task.priority || TaskPriority.MEDIUM;
 
   return (
-    <div className="bg-white p-2.5 rounded shadow-sm border border-neutral-200/50 space-y-3">
+    <div className="bg-white dark:bg-neutral-900 p-2.5 rounded shadow-sm border border-neutral-200/50 dark:border-neutral-800 space-y-3">
       <div className="flex items-start justify-between gap-x-2">
         <p 
           onClick={() => open(task.$id)}

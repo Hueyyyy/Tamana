@@ -8,7 +8,7 @@ import { Projects } from './projects';
 
 export const Sidebar = () => {
   return (
-    <aside className="h-full bg-neutral-100 p-4 w-full">
+    <aside className="h-full bg-neutral-100 dark:bg-neutral-950 p-4 w-full border-r border-neutral-200 dark:border-neutral-800">
       <Link href={'/'}>
         <Image alt="logo" src={Logo} width={164} height={48} />
       </Link>

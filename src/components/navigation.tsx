@@ -59,13 +59,13 @@ export const Navigation = () => {
           <Link key={item.href} href={fullHref}>
             <div
               className={cn(
-                'flex items-center gap-2.5 p-2.5 rounded-md font-medium hover:text-primary transition text-neutral-500',
+                'flex items-center gap-2.5 p-2.5 rounded-md font-medium hover:text-neutral-900 dark:hover:text-neutral-100 transition text-neutral-500',
                 isActive
-                  ? 'bg-white shadow-sm hover:opacity-100 text-primary'
-                  : '',
+                  ? 'bg-white dark:bg-neutral-800 shadow-sm hover:opacity-100 text-neutral-900 dark:text-neutral-100'
+                  : 'hover:text-neutral-900 dark:hover:text-neutral-100',
               )}
             >
-              <Icon className="size-5 text-neutral-500" />
+              <Icon className={cn('size-5 text-neutral-500', isActive && 'text-neutral-900 dark:text-neutral-100')} />
               {item.label}
             </div>
           </Link>

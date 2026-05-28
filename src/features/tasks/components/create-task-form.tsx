@@ -112,7 +112,7 @@ export const CreateTaskForm = ({
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Task Name</FormLabel>
+                    <FormLabel>Task Name</FormLabel>
                     <FormControl>
                       <Input {...field} placeholder="Enter task name" />
                     </FormControl>
@@ -125,7 +125,7 @@ export const CreateTaskForm = ({
                 name="dueDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Due Date</FormLabel>
+                    <FormLabel>Due Date</FormLabel>
                     <FormControl>
                       <DatePicker {...field} />
                     </FormControl>
@@ -138,7 +138,7 @@ export const CreateTaskForm = ({
                 name="assigneeId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Assignee</FormLabel>
+                    <FormLabel>Assignee</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value ?? undefined}
@@ -176,7 +176,7 @@ export const CreateTaskForm = ({
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Status</FormLabel>
+                    <FormLabel>Status</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={initialStatus}
@@ -209,7 +209,7 @@ export const CreateTaskForm = ({
                 name="priority"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Priority</FormLabel>
+                    <FormLabel>Priority</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
@@ -235,7 +235,7 @@ export const CreateTaskForm = ({
                 name="projectId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-black">Project</FormLabel>
+                    <FormLabel>Project</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={projectId}

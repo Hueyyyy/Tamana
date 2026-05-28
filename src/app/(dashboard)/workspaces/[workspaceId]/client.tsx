@@ -150,7 +150,7 @@ export const ProjectList = ({ data, total }: ProjectListProp) => {
 
   return (
     <div className="flex flex-col gap-y-4 col-span-1 ">
-      <div className="bg-white border rounded-lg p-4">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-4">
         <div className="flex items-center justify-between">
           <p className="text-lg font-semibold">Projects ({total})</p>
           <Button
@@ -201,7 +201,7 @@ export const MemberList = ({ data, total }: MemberListProp) => {
 
   return (
     <div className="flex flex-col gap-y-4 col-span-1">
-      <div className="bg-white border rounded-lg p-4">
+      <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-4">
         <div className="flex items-center justify-between">
           <p className="text-lg font-semibold">Members ({total})</p>
           <Button variant={'secondary'} size={'icon'} asChild>

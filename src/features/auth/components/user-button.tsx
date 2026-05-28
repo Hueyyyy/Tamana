@@ -52,9 +52,9 @@ export const UserButton = () => {
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger className="outline-none relative">
-        <Avatar className="size-10 hover:opacity-75 transition border border-neutral-300 relative">
+        <Avatar className="size-10 hover:opacity-75 transition border border-neutral-300 dark:border-neutral-700 relative">
           <AvatarImage src={imageUrl} alt={name || email} />
-          <AvatarFallback className="bg-neutral-200 text-neutral-500 font-medium flex items-center justify-center">
+          <AvatarFallback className="bg-neutral-200 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 font-medium flex items-center justify-center">
             {avatarFallback}
           </AvatarFallback>
         </Avatar>
@@ -66,21 +66,21 @@ export const UserButton = () => {
         sideOffset={10}
       >
         <div className="flex flex-col items-center justify-center gap-2 px-2.5 py-4">
-          <Avatar className="size-[52px] border border-neutral-300 relative">
+          <Avatar className="size-[52px] border border-neutral-300 dark:border-neutral-700 relative">
             <AvatarImage src={imageUrl} alt={name || email} />
-            <AvatarFallback className="bg-neutral-200 text-xl text-neutral-500 font-medium flex items-center justify-center">
+            <AvatarFallback className="bg-neutral-200 dark:bg-neutral-800 text-xl text-neutral-500 dark:text-neutral-400 font-medium flex items-center justify-center">
               {avatarFallback}
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col items-center justify-center">
-            <p className="text-sm font-medium text-neutral-900">
+            <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
               {name || 'User'}
             </p>
-            <p className="text-xs text-neutral-500">{email}</p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">{email}</p>
           </div>
           <DottedSeparator className="my-2" />
           <DropdownMenuItem
-            className="h-10 flex items-center justify-center text-amber-700 font-medium cursor-pointer"
+            className="h-10 flex items-center justify-center text-amber-700 dark:text-amber-400 font-medium cursor-pointer"
             onClick={handleEditProfile}
           >
             <Pencil className="size-4 mr-2" />
@@ -88,7 +88,7 @@ export const UserButton = () => {
           </DropdownMenuItem>
           <DottedSeparator className="my-2" />
           <DropdownMenuItem
-            className="h-10 flex items-center justify-center text-amber-700 font-medium cursor-pointer"
+            className="h-10 flex items-center justify-center text-amber-700 dark:text-amber-400 font-medium cursor-pointer"
             onClick={() => logout()}
           >
             <LogOut className="size-4 mr-2" />

@@ -56,7 +56,7 @@ The project follows a **modular feature-based architecture**. Each core function
 - **Robust Authentication**: Secure sign-in/sign-up with Appwrite, including OAuth support.
 - **Member Management**: Invite members to workspaces via unique invite codes with Role-Based Access Control (RBAC).
 - **Profile Customization**: Personalize user profiles with avatars and secure account management.
-- **Responsive Design**: Fully responsive UI built with Tailwind CSS and Shadcn UI.
+- **Responsive Design & Dark Mode**: Fully responsive UI built with Tailwind CSS and Shadcn UI, supporting animated toggling between Light, Dark, and System themes.
 
 ---
 
@@ -116,6 +116,14 @@ The API is built using Hono, mounted at `/api`. This setup provides several bene
 ---
 
 ### 📅 Recent Updates
+
+### 🌙 Animated Dark Mode Support (May 2026)
+
+- **Infrastructure Integration**: Configured `next-themes` with a client-safe `ThemeProvider` in the root layout, avoiding hydration mismatches using `suppressHydrationWarning`.
+- **Micro-animated Theme Toggle**: Created a custom `ThemeToggle` button inside the main navigation bar that spins and scales Sun and Moon icons when clicked.
+- **Sidebar & Workspace Switcher Overhauls**: Re-styled the sidebar layout, active links, and workspace switcher trigger elements to seamlessly shift backgrounds (`dark:bg-zinc-950`, `dark:bg-neutral-800`), borders, and text colors in dark mode.
+- **Card & List Views Enhancements**: Updated Project, Member, Kanban board cards, and calendar event cards to support dynamic dark-mode styling variables.
+- **Comments & Forms Upgrades**: Updated the comments section, mention suggestion overlays, text areas, button variants (`secondary`, `muted`, `tertiary`), and form labels to adapt cleanly in dark mode.
 
 ### ⚡ Simple Visual Priorities & Sub-task Progress Visualization (May 2026)
 
