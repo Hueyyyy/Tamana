@@ -40,7 +40,7 @@ import { ProjectAvatar } from '@/features/projects/components/project-avatar';
 import { cn } from '@/lib/utils';
 
 // Types
-import { Task, TaskStatus } from '../types';
+import { Task, TaskStatus, TaskPriority } from '../types';
 
 interface EditTaskFormProps {
   onCancel?: () => void;
@@ -49,9 +49,13 @@ interface EditTaskFormProps {
   initialValues: Task;
 }
 
-const formSchema = createTaskSchema.omit({
-  workspaceId: true,
-  description: true,
+const formSchema = z.object({
+  name: z.string().trim().min(1, 'Required'),
+  status: z.nativeEnum(TaskStatus),
+  assigneeId: z.string().trim().optional().nullable(),
+  dueDate: z.coerce.date(),
+  projectId: z.string().trim().min(1, 'Required'),
+  priority: z.nativeEnum(TaskPriority),
 });
 
 export const EditTaskForm = ({
@@ -62,23 +66,27 @@ export const EditTaskForm = ({
 }: EditTaskFormProps) => {
   const { mutate, isPending } = useUpdateTask();
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<z.input<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: initialValues.name,
       status: initialValues.status,
       projectId: initialValues.projectId,
-      assigneeId: initialValues.assigneeId,
+      assigneeId: initialValues.assigneeId || 'unassigned',
       dueDate: initialValues.dueDate
         ? new Date(initialValues.dueDate)
         : undefined,
+      priority: initialValues.priority || TaskPriority.MEDIUM,
     },
   });
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
+  const onSubmit = (data: z.input<typeof formSchema>) => {
     mutate(
       {
-        json: data,
+        json: {
+          ...data,
+          assigneeId: data.assigneeId === 'unassigned' ? null : data.assigneeId,
+        },
         param: { taskId: initialValues.$id },
       },
       {
@@ -136,7 +144,7 @@ export const EditTaskForm = ({
                     <FormLabel>Assignee</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      defaultValue={field.value ?? undefined}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -145,6 +153,11 @@ export const EditTaskForm = ({
                       </FormControl>
                       <FormMessage />
                       <SelectContent>
+                        <SelectItem value="unassigned">
+                          <div className="flex items-center gap-x-2">
+                            <span className="truncate text-muted-foreground font-medium">Unassigned</span>
+                          </div>
+                        </SelectItem>
                         {memberOptions.map((member) => (
                           <SelectItem key={member.id} value={member.id}>
                             <div className="flex items-center gap-x-2">
@@ -169,7 +182,7 @@ export const EditTaskForm = ({
                     <FormLabel>Status</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      defaultValue={field.value ?? undefined}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -189,6 +202,32 @@ export const EditTaskForm = ({
                           In Review
                         </SelectItem>
                         <SelectItem value={TaskStatus.DONE}>Done</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="priority"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Priority</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value ?? undefined}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select priority" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <FormMessage />
+                      <SelectContent>
+                        <SelectItem value={TaskPriority.LOW}>Low</SelectItem>
+                        <SelectItem value={TaskPriority.MEDIUM}>Medium</SelectItem>
+                        <SelectItem value={TaskPriority.HIGH}>High</SelectItem>
+                        <SelectItem value={TaskPriority.URGENT}>Urgent</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormItem>

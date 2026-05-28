@@ -18,7 +18,7 @@ interface EventCardProps {
   id: string;
   title: string;
   project: Project;
-  assignee: Member;
+  assignee?: Member | null;
   status: TaskStatus;
 }
 
@@ -56,8 +56,12 @@ export const EventCard = ({
       >
         <p className="text-sm font-medium line-clamp-1">{title}</p>
         <div className="flex items-center gap-x-1">
-          <MemberAvatar name={assignee.name} />
-          <div className="size-1 rounded-full bg-neutral-300" />
+          {assignee && (
+            <>
+              <MemberAvatar name={assignee.name} />
+              <div className="size-1 rounded-full bg-neutral-300" />
+            </>
+          )}
           <ProjectAvatar name={project.name} image={project.imageUrl} />
         </div>
       </div>

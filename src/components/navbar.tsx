@@ -31,7 +31,7 @@ export const Navbar = () => {
     pathnameMap[pathnameParts[3] as keyof typeof pathnameMap] || defaultMap;
 
   return (
-    <nav className="pt-4 px-6 flex items-center justify-between">
+    <nav className="pt-4 px-6 mb-4 flex items-center justify-between">
       <div className="flex-col hidden lg:flex">
         <h1 className="text-2xl font-semibold">{map.title}</h1>
         <p className="text-muted-foreground">{map.description}</p>

@@ -57,7 +57,7 @@ export const SubTasks = ({ task }: SubTasksProps) => {
   });
 
   const handleAddSubTask = () => {
-    open(undefined, task.projectId, task.$id);
+    open(TaskStatus.BACKLOG, task.projectId, task.$id);
   };
 
   const handleStatusChange = (subTaskId: string, status: TaskStatus) => {

@@ -16,7 +16,7 @@ const TasksPage = async () => {
 
   return (
     <div className="flex flex-col gap-y-4 h-full">
-      <TaskViewSwitcher userId={user.$id} hideMemberFilter />
+      <TaskViewSwitcher userId={user.$id} hideMemberFilter hideCreateButton />
     </div>
   );
 };

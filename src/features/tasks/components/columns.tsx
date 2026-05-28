@@ -4,7 +4,7 @@
 import { ColumnDef } from '@tanstack/react-table';
 
 // types
-import { Task } from '../types';
+import { Task, TaskPriority } from '../types';
 
 // components
 import { ArrowUpDown, MoreVertical } from 'lucide-react';
@@ -108,11 +108,11 @@ export const Columns: ColumnDef<Task>[] = [
       return (
         <div className="flex items-center gap-x-2 text-sm font-medium">
           <MemberAvatar
-            name={assignee.name}
+            name={assignee?.name || "Unassigned"}
             className="size-6"
             fallbackClassName="text-xs"
           />
-          {assignee.name}
+          {assignee?.name || "Unassigned"}
         </div>
       );
     },
@@ -151,6 +151,67 @@ export const Columns: ColumnDef<Task>[] = [
     cell: ({ row }) => {
       const status = row.original.status;
       return <Badge variant={status}>{snakeCaseToTitleCase(status)}</Badge>;
+    },
+  },
+  {
+    accessorKey: 'priority',
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Priority
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
+    cell: ({ row }) => {
+      const priority = row.original.priority || TaskPriority.MEDIUM;
+      return (
+        <Badge variant={priority} className="uppercase font-bold tracking-wider text-[10px] px-2 py-0.5">
+          {priority.toLowerCase()}
+        </Badge>
+      );
+    },
+  },
+  {
+    accessorKey: 'progress',
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          Progress
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
+    cell: ({ row }) => {
+      const task = row.original;
+      const total = task.totalSubTasks || 0;
+      const completed = task.completedSubTasks || 0;
+
+      if (total === 0) {
+        return <span className="text-muted-foreground text-xs font-medium ml-4">-</span>;
+      }
+
+      const percentage = Math.min(Math.max((completed / total) * 100, 0), 100);
+
+      return (
+        <div className="flex items-center gap-x-2 min-w-[100px] ml-4">
+          <div className="h-1.5 w-16 bg-neutral-100 rounded-full overflow-hidden shrink-0 border border-neutral-200/20">
+            <div
+              className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+          <span className="text-xs font-semibold text-neutral-700">
+            {completed}/{total}
+          </span>
+        </div>
+      );
     },
   },
   {

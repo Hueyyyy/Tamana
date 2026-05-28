@@ -8,6 +8,7 @@ export enum ActivityType {
   NAME_CHANGED = 'NAME_CHANGED',
   DESCRIPTION_CHANGED = 'DESCRIPTION_CHANGED',
   PROJECT_CHANGED = 'PROJECT_CHANGED',
+  PRIORITY_CHANGED = 'PRIORITY_CHANGED',
 }
 
 export type Activity = Models.Document & {

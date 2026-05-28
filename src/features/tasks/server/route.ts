@@ -18,7 +18,7 @@ import { getMember } from "@/features/members/utils";
 import { sendEmailNotification } from "@/features/notifications/utils";
 
 // types
-import { Task, TaskStatus } from "../types";
+import { Task, TaskStatus, TaskPriority } from "../types";
 
 // config
 import { DATABASE_ID, MEMBERS_ID, PROJECTS_ID, TASKS_ID, NOTIFICATIONS_ID } from "@/config";
@@ -88,6 +88,7 @@ const app = new Hono()
         projectId: z.string().nullish(),
         assigneeId: z.string().nullish(),
         status: z.nativeEnum(TaskStatus).nullish(),
+        priority: z.nativeEnum(TaskPriority).nullish(),
         search: z.string().nullish(),
         dueDate: z.string().nullish(),      
         parentId: z.string().nullish(),
@@ -95,7 +96,7 @@ const app = new Hono()
         const { users } = await createAdminClient()
         const user = c.get('user')
         const databases = c.get('databases')
-        const {workspaceId, projectId, assigneeId, status, search, dueDate, parentId} = c.req.valid('query')
+        const {workspaceId, projectId, assigneeId, status, priority, search, dueDate, parentId} = c.req.valid('query')
 
         const member = await getMember({
             userId: user.$id,
@@ -125,11 +126,19 @@ const app = new Hono()
         } 
 
         if(assigneeId){
-            query.push(Query.equal('assigneeId', assigneeId))
+            if (assigneeId === 'unassigned') {
+                query.push(Query.isNull('assigneeId'))
+            } else {
+                query.push(Query.equal('assigneeId', assigneeId))
+            }
         }
         
         if(status){
             query.push(Query.equal('status', status))
+        }
+
+        if(priority){
+            query.push(Query.equal('priority', priority))
         }
         
         if(dueDate){
@@ -146,8 +155,15 @@ const app = new Hono()
             query
         )
 
-        const projectIds = tasks.documents.map((task) => task.projectId)
-        const assigneeIds = tasks.documents.map((task) => task.assigneeId)
+                const projectIds = tasks.documents.map((task) => task.projectId)
+        const assigneeIds = tasks.documents.map((task) => task.assigneeId).filter((id): id is string => !!id)
+        const parentIds = tasks.documents.map((task) => task.$id)
+
+        const subTasksList = parentIds.length > 0 ? await databases.listDocuments<Task>(
+            DATABASE_ID,
+            TASKS_ID,
+            [Query.equal('parentId', parentIds)]
+        ) : { documents: [] }
 
         const projects = await databases.listDocuments<Project>(
             DATABASE_ID,
@@ -176,10 +192,16 @@ const app = new Hono()
             const project = projects.documents.find((project) => project.$id === task.projectId)
             const assignee = assignees.find((assignee) => assignee.$id === task.assigneeId)
 
+            const taskSubTasks = subTasksList.documents.filter((subTask) => subTask.parentId === task.$id)
+            const totalSubTasks = taskSubTasks.length
+            const completedSubTasks = taskSubTasks.filter((subTask) => subTask.status === TaskStatus.DONE).length
+
             return {
                 ...task,
                 project,
-                assignee
+                assignee,
+                totalSubTasks,
+                completedSubTasks
             }
         })
 
@@ -220,18 +242,25 @@ const app = new Hono()
             task.projectId
         )
 
-        const assigneeMember = await databases.getDocument(
-            DATABASE_ID,
-            MEMBERS_ID,
-            task.assigneeId
-        )
+        let assignee = null;
+        if (task.assigneeId) {
+            try {
+                const assigneeMember = await databases.getDocument(
+                    DATABASE_ID,
+                    MEMBERS_ID,
+                    task.assigneeId
+                )
 
-        const assigneeUser = await users.get(assigneeMember.userId)
+                const assigneeUser = await users.get(assigneeMember.userId)
 
-        const assignee = {
-            ...assigneeMember,
-            name: assigneeUser.name || assigneeUser.email,
-            email: assigneeUser.email
+                assignee = {
+                    ...assigneeMember,
+                    name: assigneeUser.name || assigneeUser.email,
+                    email: assigneeUser.email
+                }
+            } catch (error) {
+                console.error("Failed to fetch assignee:", error)
+            }
         }
 
         let parentTask = null;
@@ -247,19 +276,29 @@ const app = new Hono()
             }
         }
 
+        const subTasks = await databases.listDocuments<Task>(
+            DATABASE_ID,
+            TASKS_ID,
+            [Query.equal('parentId', taskId)]
+        )
+        const totalSubTasks = subTasks.documents.length
+        const completedSubTasks = subTasks.documents.filter(st => st.status === TaskStatus.DONE).length
+
         return c.json({
             data: {
                 ...task,
                 project,
                 assignee,
-                parentTask
+                parentTask,
+                totalSubTasks,
+                completedSubTasks
             }
         })
     })
     .post('/', sessionMiddleware, zValidator('json', createTaskSchema), async (c) => {
         const user = c.get('user')
         const databases = c.get('databases')
-        const {name, description, status, assigneeId, dueDate, projectId, workspaceId, parentId} = c.req.valid('json')
+        const {name, description, status, assigneeId, dueDate, projectId, workspaceId, parentId, priority} = c.req.valid('json')
 
         const member = await getMember({
             userId: user.$id,
@@ -314,6 +353,7 @@ const app = new Hono()
                 workspaceId,
                 position: newPosition,
                 parentId,
+                priority,
             }
         )
 
@@ -366,7 +406,7 @@ const app = new Hono()
     .patch('/:taskId', sessionMiddleware, zValidator('json', createTaskSchema.partial()), async (c) => {
         const user = c.get('user')
         const databases = c.get('databases')
-        const {name, description, status, assigneeId, dueDate, projectId, parentId} = c.req.valid('json')
+        const {name, description, status, assigneeId, dueDate, projectId, parentId, priority} = c.req.valid('json')
         const { taskId } = c.req.param()
 
         const existingTask = await databases.getDocument<Task>(
@@ -427,6 +467,7 @@ const app = new Hono()
                 dueDate,
                 projectId,
                 parentId,
+                priority,
             }
         )
 
@@ -466,14 +507,14 @@ const app = new Hono()
             }));
         }
 
-        if (assigneeId && assigneeId !== existingTask.assigneeId) {
+        if (assigneeId !== undefined && assigneeId !== existingTask.assigneeId) {
             activities.push(createActivity({
                 databases,
                 taskId,
                 workspaceId: existingTask.workspaceId,
                 userId: user.$id,
                 type: ActivityType.ASSIGNEE_CHANGED,
-                description: 'reassigned the task',
+                description: assigneeId ? 'reassigned the task' : 'unassigned the task',
             }));
         }
 
@@ -499,21 +540,32 @@ const app = new Hono()
             }));
         }
 
+        if (priority && priority !== existingTask.priority) {
+            activities.push(createActivity({
+                databases,
+                taskId,
+                workspaceId: existingTask.workspaceId,
+                userId: user.$id,
+                type: ActivityType.PRIORITY_CHANGED,
+                description: `changed priority from ${existingTask.priority || 'MEDIUM'} to ${priority}`,
+            }));
+        }
+
         if (activities.length > 0) {
             await Promise.all(activities);
         }
 
         // Notification: Status Updated or Re-assigned
         const isStatusChanged = status && status !== existingTask.status
-        const isAssigneeChanged = assigneeId && assigneeId !== existingTask.assigneeId
+        const isAssigneeChanged = assigneeId !== undefined && assigneeId !== existingTask.assigneeId
 
         if (isStatusChanged || isAssigneeChanged) {
             const currentAssigneeId = existingTask.assigneeId
-            const currentAssigneeMember = await databases.getDocument(
+            const currentAssigneeMember = currentAssigneeId ? await databases.getDocument(
                 DATABASE_ID,
                 MEMBERS_ID,
                 currentAssigneeId
-            )
+            ) : null
 
             const newAssigneeId = isAssigneeChanged ? assigneeId : null
             const newAssigneeMember = newAssigneeId ? await databases.getDocument(
@@ -523,7 +575,7 @@ const app = new Hono()
             ) : null
 
 
-            let payloadForCurrentAssignee = {
+            let payloadForCurrentAssignee = currentAssigneeMember ? {
                 userId: currentAssigneeMember.userId,
                 workspaceId: existingTask.workspaceId,
                 title: '',
@@ -531,10 +583,10 @@ const app = new Hono()
                 type: '',
                 targetId: task.$id,
                 isRead: false,
-            }
+            } : null
 
-            let payloadForNewAssignee = newAssigneeId ? {
-                userId: newAssigneeMember?.userId,
+            let payloadForNewAssignee = newAssigneeMember ? {
+                userId: newAssigneeMember.userId,
                 workspaceId: existingTask.workspaceId,
                 title: '',
                 message: '',
@@ -543,7 +595,7 @@ const app = new Hono()
                 isRead: false,
             }: null
 
-            if (isAssigneeChanged && payloadForNewAssignee) {
+            if (isAssigneeChanged && payloadForNewAssignee && newAssigneeMember) {
                 payloadForNewAssignee = {
                     ...payloadForNewAssignee,
                     title: 'New Task Assigned',
@@ -551,11 +603,13 @@ const app = new Hono()
                     type: NotificationType.TASK_ASSIGNED
                 }
 
-                payloadForCurrentAssignee = {
-                    ...payloadForCurrentAssignee,
-                    title: 'Task Unassigned',
-                    message: `Task "${name || existingTask.name}" has been unassigned from you`,
-                    type: NotificationType.TASK_UNASSIGNED
+                if (payloadForCurrentAssignee && currentAssigneeMember) {
+                    payloadForCurrentAssignee = {
+                        ...payloadForCurrentAssignee,
+                        title: 'Task Unassigned',
+                        message: `Task "${name || existingTask.name}" has been unassigned from you`,
+                        type: NotificationType.TASK_UNASSIGNED
+                    }
                 }
 
                 // Notification for new assignee
@@ -568,14 +622,14 @@ const app = new Hono()
 
                 // Email notification for new assignee
                 await sendEmailNotification({
-                    userId: payloadForNewAssignee.userId!,
+                    userId: payloadForNewAssignee.userId,
                     title: payloadForNewAssignee.title,
                     message: `${payloadForNewAssignee.message}. Click here to view the task: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${existingTask.workspaceId}/tasks/${task.$id}`,
                 })
 
 
                 // Notification for current assignee
-                if (currentAssigneeMember.userId !== user.$id) {
+                if (currentAssigneeMember && currentAssigneeMember.userId !== user.$id && payloadForCurrentAssignee) {
                     await databases.createDocument(
                         DATABASE_ID,
                         NOTIFICATIONS_ID,
@@ -590,10 +644,33 @@ const app = new Hono()
                         message: `${payloadForCurrentAssignee.message}`,
                     })
                 }
+            } else if (isAssigneeChanged && !newAssigneeId && payloadForCurrentAssignee && currentAssigneeMember) {
+                // Task was unassigned and not reassigned to anyone
+                payloadForCurrentAssignee = {
+                    ...payloadForCurrentAssignee,
+                    title: 'Task Unassigned',
+                    message: `Task "${name || existingTask.name}" has been unassigned from you`,
+                    type: NotificationType.TASK_UNASSIGNED
+                }
+
+                if (currentAssigneeMember.userId !== user.$id) {
+                    await databases.createDocument(
+                        DATABASE_ID,
+                        NOTIFICATIONS_ID,
+                        ID.unique(),
+                        payloadForCurrentAssignee
+                    )
+
+                    await sendEmailNotification({
+                        userId: payloadForCurrentAssignee.userId,
+                        title: payloadForCurrentAssignee.title,
+                        message: `${payloadForCurrentAssignee.message}`,
+                    })
+                }
             }
             
             if (isStatusChanged) {
-                if (!isAssigneeChanged) {
+                if (!isAssigneeChanged && currentAssigneeMember && payloadForCurrentAssignee) {
                     payloadForCurrentAssignee = {
                         ...payloadForCurrentAssignee,
                         title: 'Task Status Updated',
@@ -616,7 +693,7 @@ const app = new Hono()
                             message: `${payloadForCurrentAssignee.message}. Click here to view the task: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${existingTask.workspaceId}/tasks/${task.$id}`,
                         })
                     }
-                } else if (isAssigneeChanged && payloadForNewAssignee) {
+                } else if (isAssigneeChanged && payloadForNewAssignee && newAssigneeMember) {
                     payloadForNewAssignee = {
                         ...payloadForNewAssignee,
                         title: 'Task Status Updated',
@@ -625,7 +702,7 @@ const app = new Hono()
                     }
 
                     // Notification for new assignee
-                    if (newAssigneeMember?.userId !== user.$id) {
+                    if (newAssigneeMember.userId !== user.$id) {
                         await databases.createDocument(
                             DATABASE_ID,
                             NOTIFICATIONS_ID,
@@ -635,7 +712,7 @@ const app = new Hono()
 
                         // Email notification for new assignee
                         await sendEmailNotification({
-                            userId: payloadForNewAssignee.userId!,
+                            userId: payloadForNewAssignee.userId,
                             title: payloadForNewAssignee.title,
                             message: `${payloadForNewAssignee.message}. Click here to view the task: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${existingTask.workspaceId}/tasks/${task.$id}`,
                         })
@@ -740,7 +817,7 @@ const app = new Hono()
             taskToUpdate.documents.map(async (task) => {
                 const {assigneeId, name, $id } = task
                 const updatedTask = updatedTasks.find((updatedTask) => updatedTask.$id === task.$id)
-                if (assigneeId !== member?.$id && updatedTask?.status !== task.status) {
+                if (assigneeId && assigneeId !== member?.$id && updatedTask?.status !== task.status) {
                     const assigneeMember = await databases.getDocument(
                         DATABASE_ID,
                         MEMBERS_ID,

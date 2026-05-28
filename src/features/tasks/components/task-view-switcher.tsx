@@ -33,12 +33,14 @@ interface TaskViewSwitcherProps {
   hideProjectFilter?: boolean;
   hideMemberFilter?: boolean;
   userId?: string;
+  hideCreateButton?: boolean;
 }
 
 export const TaskViewSwitcher = ({
   hideProjectFilter,
   hideMemberFilter,
   userId,
+  hideCreateButton,
 }: TaskViewSwitcherProps) => {
   const [view, setView] = useQueryState('task-view', {
     defaultValue: 'table',
@@ -46,7 +48,7 @@ export const TaskViewSwitcher = ({
   const { open } = useCreateTaskModal();
   const workspaceId = useWorkspaceId();
   const paramProjectId = useProjectId();
-  const [{ status, projectId, assigneeId, dueDate, search }] = useTaskFilters();
+  const [{ status, priority, projectId, assigneeId, dueDate, search }] = useTaskFilters();
   const { data: memberInfo } = useGetMemberInfo({
     workspaceId,
     userId: userId as string,
@@ -54,6 +56,7 @@ export const TaskViewSwitcher = ({
   const { data: tasks, isLoading: isLoadingTasks } = useGetTasks({
     workspaceId,
     status,
+    priority,
     projectId: paramProjectId || projectId,
     assigneeId: userId ? memberInfo?.$id : assigneeId,
     dueDate,
@@ -90,14 +93,16 @@ export const TaskViewSwitcher = ({
               Calendar
             </TabsTrigger>
           </TabsList>
-          <Button
-            size={'sm'}
-            className="w-full lg:w-auto"
-            onClick={() => open(undefined, paramProjectId)}
-          >
-            <Plus className="size-4" />
-            New
-          </Button>
+          {!hideCreateButton && (
+            <Button
+              size={'sm'}
+              className="w-full lg:w-auto"
+              onClick={() => open(paramProjectId ? TaskStatus.BACKLOG : undefined, paramProjectId)}
+            >
+              <Plus className="size-4" />
+              New
+            </Button>
+          )}
         </div>
         <DottedSeparator className="my-4" />
         <DataFilters

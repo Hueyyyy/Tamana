@@ -47,7 +47,7 @@ The project follows a **modular feature-based architecture**. Each core function
 - **Project Organization**: Organize tasks within specific projects.
 - **Advanced Task Management**:
   - **Multiple Views**: Switch between List, Kanban (with drag-and-drop), and Calendar views.
-  - **Filtering**: Filter tasks by status, assignee, project, and due date.
+  - **Filtering**: Filter tasks by status, assignee, project, priority, and due date.
   - **Bulk Updates**: Support for updating task positions and statuses across the board.
   - **Task Comments**: Collaborative thread for each task with member tagging and real-time updates.
   - **Activity Log**: Automatically tracks and displays all changes made to a task (status, assignee, due date, etc.).
@@ -116,6 +116,24 @@ The API is built using Hono, mounted at `/api`. This setup provides several bene
 ---
 
 ### 📅 Recent Updates
+
+### ⚡ Simple Visual Priorities & Sub-task Progress Visualization (May 2026)
+
+- **Task Priorities**: Introduced support for task priorities (`URGENT`, `HIGH`, `MEDIUM`, `LOW`) with corresponding colored status badges (Crimson/rose for Urgent, Amber/orange for High, Blue for Medium, and Slate/gray-blue for Low). Priorities default to `MEDIUM` on creation.
+- **Priority Filter**: Added a priority selector filter to the tasks dashboard, enabling filtering of tasks by priority state (`URGENT`, `HIGH`, `MEDIUM`, `LOW`) dynamically synchronized through the URL query state.
+- **Sub-task Progress Tracking**: Added completion fraction indicators (e.g., `2/4`) and visual progress bars (`bg-emerald-500`) to both Kanban cards and task list table columns when a task has one or more sub-tasks.
+- **Interactive Inline Priority Switcher**: Integrated an inline dropdown selection menu for task priority in the task details overview, allowing users to modify a task's priority on the fly, which automatically logs audit activity records.
+
+### 📋 Task Usability, Defaults, & Layout Spacing (May 2026)
+
+- **Optional Assignees**: Set the assignee field to be optional when creating or editing tasks. Tasks can now be unassigned, displaying clean fallbacks (e.g. "Unassigned" text and neutral avatars) across Kanban, Table, Calendar, and Overview pages.
+- **Smart Sub-task Defaults**: Sub-tasks automatically inherit the assignee of their parent task by default when opened from the sub-task creation menu.
+- **Backlog Default Status**: Newly created sub-tasks and tasks created from the project page switcher default to the `BACKLOG` status (excluding direct creation in specific Kanban columns).
+- **Styled Status Filters**: Upgraded the status dropdown filter to display colored indicator dots next to each status matching their corresponding badge colors.
+- **Unassigned Filtering**: Added an "Unassigned" option to the assignee filter to easily query and view tasks that currently have no assignee, with `MemberAvatar` components displayed next to each assignee option (and the "Unassigned" item) in the dropdown list.
+- **Layout Alignment**: Equalized the height of the Task Overview and Task Description cards on the Task Detail page, and enabled the description container/textarea to dynamically stretch to fill the vertical space.
+- **Mobile & Desktop Navigation Spacing**: Added a consistent bottom margin (`mb-4`) to the main navigation bar on all screen sizes to prevent the navbar from being squished against the content.
+- **Edit/Cancel Button Click-away Fix**: Resolved a race condition on the description's edit/cancel button toggle by checking button references inside the `useClickAway` hook.
 
 ### 💬 Task Comment System (April 2026)
 

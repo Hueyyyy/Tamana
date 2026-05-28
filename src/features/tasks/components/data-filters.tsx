@@ -1,6 +1,8 @@
+import React from 'react';
 import { useGetMembers } from '@/features/members/api/use-get-members';
 import { useGetProjects } from '@/features/projects/api/use-get-projects';
 import { useWorkspaceId } from '@/features/workspaces/hooks/use-workspace-id';
+import { MemberAvatar } from '@/features/members/components/member-avatar';
 import { DatePicker } from '@/components/date-picker';
 import {
   Select,
@@ -10,8 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { FolderIcon, ListCheckIcon, UserIcon } from 'lucide-react';
-import { TaskStatus } from '../types';
+import { AlertCircle, FolderIcon, ListCheckIcon, UserIcon } from 'lucide-react';
+import { TaskStatus, TaskPriority } from '../types';
 import { useTaskFilters } from '../hooks/use-task-filters';
 
 interface DataFiltersProps {
@@ -43,12 +45,18 @@ const DataFilters = ({
     label: member.name,
   }));
 
-  const [{ status, projectId, assigneeId, dueDate }, setFilters] =
+  const [{ status, priority, projectId, assigneeId, dueDate }, setFilters] =
     useTaskFilters();
 
   const onStatusChange = (status: string) => {
     setFilters({
       status: status === 'all' ? null : (status as TaskStatus),
+    });
+  };
+
+  const onPriorityChange = (priority: string) => {
+    setFilters({
+      priority: priority === 'all' ? null : (priority as TaskPriority),
     });
   };
 
@@ -85,17 +93,94 @@ const DataFilters = ({
           </div>
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All statuses</SelectItem>
+          <SelectItem value="all">
+            <div className="flex items-center gap-x-2">
+              <div className="size-2 rounded-full bg-neutral-400" />
+              <span>All statuses</span>
+            </div>
+          </SelectItem>
           <SelectSeparator />
-          <SelectItem value={TaskStatus.BACKLOG}>Backlog</SelectItem>
+          <SelectItem value={TaskStatus.BACKLOG}>
+            <div className="flex items-center gap-x-2">
+              <div className="size-2 rounded-full bg-pink-400" />
+              <span>Backlog</span>
+            </div>
+          </SelectItem>
           <SelectSeparator />
-          <SelectItem value={TaskStatus.TODO}>To Do</SelectItem>
+          <SelectItem value={TaskStatus.TODO}>
+            <div className="flex items-center gap-x-2">
+              <div className="size-2 rounded-full bg-red-400" />
+              <span>To Do</span>
+            </div>
+          </SelectItem>
           <SelectSeparator />
-          <SelectItem value={TaskStatus.IN_PROGRESS}>In Progress</SelectItem>
+          <SelectItem value={TaskStatus.IN_PROGRESS}>
+            <div className="flex items-center gap-x-2">
+              <div className="size-2 rounded-full bg-yellow-400" />
+              <span>In Progress</span>
+            </div>
+          </SelectItem>
           <SelectSeparator />
-          <SelectItem value={TaskStatus.IN_REVIEW}>In Review</SelectItem>
+          <SelectItem value={TaskStatus.IN_REVIEW}>
+            <div className="flex items-center gap-x-2">
+              <div className="size-2 rounded-full bg-blue-400" />
+              <span>In Review</span>
+            </div>
+          </SelectItem>
           <SelectSeparator />
-          <SelectItem value={TaskStatus.DONE}>Done</SelectItem>
+          <SelectItem value={TaskStatus.DONE}>
+            <div className="flex items-center gap-x-2">
+              <div className="size-2 rounded-full bg-emerald-400" />
+              <span>Done</span>
+            </div>
+          </SelectItem>
+        </SelectContent>
+      </Select>
+      <Select
+        defaultValue={priority ?? undefined}
+        onValueChange={(value) => onPriorityChange(value)}
+      >
+        <SelectTrigger className="w-full lg:w-auto h-8">
+          <div className="flex items-center pr-2">
+            <AlertCircle className="size-4 mr-2" />
+            <SelectValue placeholder="All priorities" />
+          </div>
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">
+            <div className="flex items-center gap-x-2">
+              <div className="size-2 rounded-full bg-neutral-400" />
+              <span>All priorities</span>
+            </div>
+          </SelectItem>
+          <SelectSeparator />
+          <SelectItem value={TaskPriority.LOW}>
+            <div className="flex items-center gap-x-2">
+              <div className="size-2 rounded-full bg-slate-400" />
+              <span>Low</span>
+            </div>
+          </SelectItem>
+          <SelectSeparator />
+          <SelectItem value={TaskPriority.MEDIUM}>
+            <div className="flex items-center gap-x-2">
+              <div className="size-2 rounded-full bg-blue-500" />
+              <span>Medium</span>
+            </div>
+          </SelectItem>
+          <SelectSeparator />
+          <SelectItem value={TaskPriority.HIGH}>
+            <div className="flex items-center gap-x-2">
+              <div className="size-2 rounded-full bg-amber-500" />
+              <span>High</span>
+            </div>
+          </SelectItem>
+          <SelectSeparator />
+          <SelectItem value={TaskPriority.URGENT}>
+            <div className="flex items-center gap-x-2">
+              <div className="size-2 rounded-full bg-rose-600" />
+              <span>Urgent</span>
+            </div>
+          </SelectItem>
         </SelectContent>
       </Select>
       {!hideMemberFilter && (
@@ -110,15 +195,38 @@ const DataFilters = ({
             </div>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Assignees</SelectItem>
+            <SelectItem value="all">
+              <div className="flex items-center gap-x-2">
+                <UserIcon className="size-4 text-neutral-500 mr-0.5" />
+                <span>All assignees</span>
+              </div>
+            </SelectItem>
+            <SelectSeparator />
+            <SelectItem value="unassigned">
+              <div className="flex items-center gap-x-2">
+                <MemberAvatar
+                  name="Unassigned"
+                  className="size-6"
+                  fallbackClassName="text-[10px]"
+                />
+                <span>Unassigned</span>
+              </div>
+            </SelectItem>
             <SelectSeparator />
             {memberOptions?.map((member, index) => (
-              <>
-                <SelectItem key={member.value} value={member.value}>
-                  {member.label}
+              <React.Fragment key={member.value}>
+                <SelectItem value={member.value}>
+                  <div className="flex items-center gap-x-2">
+                    <MemberAvatar
+                      name={member.label}
+                      className="size-6"
+                      fallbackClassName="text-[10px]"
+                    />
+                    <span>{member.label}</span>
+                  </div>
                 </SelectItem>
                 {index < memberOptions.length - 1 && <SelectSeparator />}
-              </>
+              </React.Fragment>
             ))}
           </SelectContent>
         </Select>

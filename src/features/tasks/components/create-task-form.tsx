@@ -41,7 +41,7 @@ import { ProjectAvatar } from '@/features/projects/components/project-avatar';
 import { cn } from '@/lib/utils';
 
 // Types
-import { TaskStatus } from '../types';
+import { TaskStatus, TaskPriority } from '../types';
 
 interface CreateTaskFormProps {
   onCancel?: () => void;
@@ -50,6 +50,7 @@ interface CreateTaskFormProps {
   initialStatus?: TaskStatus;
   projectId?: string;
   parentId?: string;
+  defaultAssigneeId?: string;
 }
 
 export const CreateTaskForm = ({
@@ -59,25 +60,29 @@ export const CreateTaskForm = ({
   initialStatus,
   projectId,
   parentId,
+  defaultAssigneeId,
 }: CreateTaskFormProps) => {
   const workspaceId = useWorkspaceId();
   const { mutate, isPending } = useCreateTask();
 
-  const form = useForm<z.infer<typeof createTaskSchema>>({
+  const form = useForm<z.input<typeof createTaskSchema>>({
     resolver: zodResolver(createTaskSchema),
     defaultValues: {
       workspaceId,
       projectId,
       status: initialStatus,
       parentId,
+      assigneeId: defaultAssigneeId || 'unassigned',
+      priority: TaskPriority.MEDIUM,
     },
   });
 
-  const onSubmit = (data: z.infer<typeof createTaskSchema>) => {
+  const onSubmit = (data: z.input<typeof createTaskSchema>) => {
     mutate(
       {
         json: {
           ...data,
+          assigneeId: data.assigneeId === 'unassigned' ? null : data.assigneeId,
           workspaceId,
         },
       },
@@ -136,7 +141,7 @@ export const CreateTaskForm = ({
                     <FormLabel className="text-black">Assignee</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      defaultValue={field.value ?? undefined}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -145,6 +150,11 @@ export const CreateTaskForm = ({
                       </FormControl>
                       <FormMessage />
                       <SelectContent className="w-[var(--radix-select-trigger-width)]">
+                        <SelectItem value="unassigned">
+                          <div className="flex items-center gap-x-2 min-w-0">
+                            <span className="truncate text-muted-foreground font-medium">Unassigned</span>
+                          </div>
+                        </SelectItem>
                         {memberOptions.map((member) => (
                           <SelectItem key={member.id} value={member.id}>
                             <div className="flex items-center gap-x-2 min-w-0">
@@ -189,6 +199,32 @@ export const CreateTaskForm = ({
                           In Review
                         </SelectItem>
                         <SelectItem value={TaskStatus.DONE}>Done</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="priority"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-black">Priority</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select priority" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <FormMessage />
+                      <SelectContent>
+                        <SelectItem value={TaskPriority.LOW}>Low</SelectItem>
+                        <SelectItem value={TaskPriority.MEDIUM}>Medium</SelectItem>
+                        <SelectItem value={TaskPriority.HIGH}>High</SelectItem>
+                        <SelectItem value={TaskPriority.URGENT}>Urgent</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormItem>

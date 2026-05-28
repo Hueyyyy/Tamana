@@ -129,6 +129,7 @@ const app = new Hono()
                   [
                       Query.equal('workspaceId', workspaceId),
                       Query.between('$createdAt', thisMonthStart.toISOString(), thisMonthEnd.toISOString()),
+                      Query.isNull('parentId'),
                   ],
               ),
               databases.listDocuments(
@@ -137,6 +138,7 @@ const app = new Hono()
                   [
                       Query.equal('workspaceId', workspaceId),
                       Query.between('$createdAt', lastMonthStart.toISOString(), lastMonthEnd.toISOString()),
+                      Query.isNull('parentId'),
                   ],
               ),
           ])
@@ -153,6 +155,7 @@ const app = new Hono()
                       Query.equal('workspaceId', workspaceId),
                       Query.equal('assigneeId', member.$id),
                       Query.between('$createdAt', thisMonthStart.toISOString(), thisMonthEnd.toISOString()),
+                      Query.isNull('parentId'),
                   ],
               ),
               databases.listDocuments(
@@ -162,6 +165,7 @@ const app = new Hono()
                       Query.equal('workspaceId', workspaceId),
                       Query.equal('assigneeId', member.$id),
                       Query.between('$createdAt', lastMonthStart.toISOString(), lastMonthEnd.toISOString()),
+                      Query.isNull('parentId'),
                   ],
               ),
           ])
@@ -178,6 +182,7 @@ const app = new Hono()
                       Query.equal('workspaceId', workspaceId),
                       Query.notEqual('status',TaskStatus.DONE),
                       Query.between('$createdAt', thisMonthStart.toISOString(), thisMonthEnd.toISOString()),
+                      Query.isNull('parentId'),
                   ],
               ),
               databases.listDocuments(
@@ -187,6 +192,7 @@ const app = new Hono()
                       Query.equal('workspaceId', workspaceId),
                       Query.notEqual('status',TaskStatus.DONE),
                       Query.between('$createdAt', lastMonthStart.toISOString(), lastMonthEnd.toISOString()),
+                      Query.isNull('parentId'),
                   ],
               ),
           ])
@@ -203,6 +209,7 @@ const app = new Hono()
                       Query.equal('workspaceId', workspaceId),
                       Query.equal('status',TaskStatus.DONE),
                       Query.between('$createdAt', thisMonthStart.toISOString(), thisMonthEnd.toISOString()),
+                      Query.isNull('parentId'),
                   ],
               ),
               databases.listDocuments(
@@ -212,6 +219,7 @@ const app = new Hono()
                       Query.equal('workspaceId', workspaceId),
                       Query.equal('status',TaskStatus.DONE),
                       Query.between('$createdAt', lastMonthStart.toISOString(), lastMonthEnd.toISOString()),
+                      Query.isNull('parentId'),
                   ],
               ),
           ])
@@ -229,6 +237,7 @@ const app = new Hono()
                       Query.notEqual('status',TaskStatus.DONE),
                       Query.lessThan('dueDate', now.toISOString()),
                       Query.between('$createdAt', thisMonthStart.toISOString(), thisMonthEnd.toISOString()),
+                      Query.isNull('parentId'),
                   ],
               ),
               databases.listDocuments(
@@ -239,6 +248,7 @@ const app = new Hono()
                       Query.notEqual('status',TaskStatus.DONE),
                       Query.lessThan('dueDate', now.toISOString()),
                       Query.between('$createdAt', lastMonthStart.toISOString(), lastMonthEnd.toISOString()),
+                      Query.isNull('parentId'),
                   ],
               ),
           ])
