@@ -5,6 +5,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/sonner';
 import { QueryProvider } from '@/components/query-provider';
 import { ThemeProvider } from '@/components/theme-provider';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const montserrat = Montserrat({
   subsets: ['latin'],
@@ -33,6 +34,7 @@ export default function RootLayout({
           >
             <Toaster />
             {children}
+            <SpeedInsights />
           </ThemeProvider>
         </QueryProvider>
       </body>
