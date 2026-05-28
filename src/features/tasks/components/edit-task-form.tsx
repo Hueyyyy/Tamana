@@ -9,9 +9,6 @@ import { useForm } from 'react-hook-form';
 import { useUpdateTask } from '../api/use-update-task';
 
 
-// Schemas
-import { createTaskSchema } from '../schemas';
-
 // Components
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
