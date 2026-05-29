@@ -21,7 +21,7 @@ import { sendEmailNotification } from "@/features/notifications/utils";
 import { Task, TaskStatus, TaskPriority } from "../types";
 
 // config
-import { DATABASE_ID, MEMBERS_ID, PROJECTS_ID, TASKS_ID, NOTIFICATIONS_ID } from "@/config";
+import { DATABASE_ID, MEMBERS_ID, PROJECTS_ID, TASKS_ID, NOTIFICATIONS_ID, IMAGES_BUCKET_ID } from "@/config";
 import { createAdminClient } from "@/lib/appwrite";
 import { Project } from "@/features/projects/type";
 import { NotificationType } from "@/features/notifications/types";
@@ -177,13 +177,28 @@ const app = new Hono()
             assigneeIds.length > 0 ? [Query.equal('$id', assigneeIds)] : []
         )
 
+        const storage = c.get('storage')
         const assignees = await Promise.all(
             members.documents.map (async (member) => {
                 const user = await users.get(member.userId)
+                const imageId = user.prefs?.imageId
+                let avatarUrl: string | undefined
+                if (imageId) {
+                    try {
+                        const arrayBuffer = await storage.getFilePreview(
+                            IMAGES_BUCKET_ID,
+                            imageId,
+                        )
+                        avatarUrl = `data:image/png;base64,${Buffer.from(arrayBuffer).toString('base64')}`
+                    } catch (error) {
+                        console.error("Failed to get assignee file preview:", error)
+                    }
+                }
                 return {
                     ...member,
                     name: user.name,
-                    email: user.email
+                    email: user.email,
+                    avatarUrl
                 }
             })
         )
@@ -253,10 +268,26 @@ const app = new Hono()
 
                 const assigneeUser = await users.get(assigneeMember.userId)
 
+                const imageId = assigneeUser.prefs?.imageId;
+                let avatarUrl: string | undefined
+                if (imageId) {
+                    try {
+                        const storage = c.get('storage')
+                        const arrayBuffer = await storage.getFilePreview(
+                            IMAGES_BUCKET_ID,
+                            imageId,
+                        )
+                        avatarUrl = `data:image/png;base64,${Buffer.from(arrayBuffer).toString('base64')}`
+                    } catch (error) {
+                        console.error("Failed to get task assignee file preview:", error)
+                    }
+                }
+
                 assignee = {
                     ...assigneeMember,
                     name: assigneeUser.name || assigneeUser.email,
-                    email: assigneeUser.email
+                    email: assigneeUser.email,
+                    avatarUrl
                 }
             } catch (error) {
                 console.error("Failed to fetch assignee:", error)

@@ -10,4 +10,7 @@ export type Member = Models.Document & {
   workspaceId: string;
   userId: string;
   isOwner: boolean;
+  name: string;
+  email: string;
+  avatarUrl?: string;
 }

@@ -109,6 +109,7 @@ export const Columns: ColumnDef<Task>[] = [
         <div className="flex items-center gap-x-2 text-sm font-medium">
           <MemberAvatar
             name={assignee?.name || "Unassigned"}
+            imageUrl={assignee?.avatarUrl}
             className="size-6"
             fallbackClassName="text-xs"
           />

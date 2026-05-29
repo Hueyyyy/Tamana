@@ -43,6 +43,7 @@ const DataFilters = ({
   const memberOptions = members?.documents.map((member) => ({
     value: member.$id,
     label: member.name,
+    imageUrl: member.avatarUrl,
   }));
 
   const [{ status, priority, projectId, assigneeId, dueDate }, setFilters] =
@@ -219,6 +220,7 @@ const DataFilters = ({
                   <div className="flex items-center gap-x-2">
                     <MemberAvatar
                       name={member.label}
+                      imageUrl={member.imageUrl}
                       className="size-6"
                       fallbackClassName="text-[10px]"
                     />

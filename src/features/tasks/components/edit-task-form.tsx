@@ -42,7 +42,7 @@ import { Task, TaskStatus, TaskPriority } from '../types';
 interface EditTaskFormProps {
   onCancel?: () => void;
   projectOptions: { id: string; name: string; imageUrl: string }[];
-  memberOptions: { id: string; name: string }[];
+  memberOptions: { id: string; name: string; imageUrl?: string }[];
   initialValues: Task;
 }
 
@@ -160,6 +160,7 @@ export const EditTaskForm = ({
                             <div className="flex items-center gap-x-2">
                               <MemberAvatar
                                 name={member.name}
+                                imageUrl={member.imageUrl}
                                 className="size-6"
                               />
                               {member.name}

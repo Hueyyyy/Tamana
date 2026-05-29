@@ -38,6 +38,7 @@ const EditTaskFormWrapper = ({ id, onCancel }: EditTaskFormWrapperProps) => {
   const memberOptions = members?.documents.map((member) => ({
     id: member.$id,
     name: member.name,
+    imageUrl: member.avatarUrl,
   }));
 
   const isLoading = isLoadingProjects || isLoadingMembers || isLoadingTask;

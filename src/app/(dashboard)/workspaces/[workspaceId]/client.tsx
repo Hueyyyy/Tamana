@@ -216,7 +216,7 @@ export const MemberList = ({ data, total }: MemberListProp) => {
             <li key={member.$id}>
               <Card className="shadown-none rounded-lg hover:opacity-75 transition">
                 <CardContent className="p-4 flex flex-col items-center gap-2 overflow-hidden">
-                  <MemberAvatar name={member.name} className="size-12" />
+                  <MemberAvatar name={member.name} imageUrl={member.avatarUrl} className="size-12" />
                   <div className="flex flex-col items-center overflow-hidden w-full">
                     <p className="text-lg font-medium truncate w-full text-center">
                       {member.name}

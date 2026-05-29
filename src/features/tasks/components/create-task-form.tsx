@@ -46,7 +46,7 @@ import { TaskStatus, TaskPriority } from '../types';
 interface CreateTaskFormProps {
   onCancel?: () => void;
   projectOptions: { id: string; name: string; imageUrl: string }[];
-  memberOptions: { id: string; name: string }[];
+  memberOptions: { id: string; name: string; imageUrl?: string }[];
   initialStatus?: TaskStatus;
   projectId?: string;
   parentId?: string;
@@ -160,6 +160,7 @@ export const CreateTaskForm = ({
                             <div className="flex items-center gap-x-2 min-w-0">
                               <MemberAvatar
                                 name={member.name}
+                                imageUrl={member.imageUrl}
                                 className="size-6 shrink-0"
                               />
                               <span className="truncate">{member.name}</span>

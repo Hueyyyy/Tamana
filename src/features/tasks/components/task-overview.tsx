@@ -81,7 +81,7 @@ export const TaskOverview = ({ task }: TaskOverviewProps) => {
           <OverviewProperty label="Assignee">
             {task.assignee ? (
               <div className="flex items-center gap-x-2">
-                <MemberAvatar name={task.assignee.name} className="size-6" />
+                <MemberAvatar name={task.assignee.name} imageUrl={task.assignee.avatarUrl} className="size-6" />
                 <p className="text-sm font-medium">{task.assignee.name}</p>
               </div>
             ) : (

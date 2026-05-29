@@ -14,14 +14,16 @@ import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { client } from '@/lib/appwrite-client';
 import { DATABASE_ID, NOTIFICATIONS_ID } from '@/config';
 import { useQueryClient } from '@tanstack/react-query';
 import { Notification, NotificationType } from '../types';
 import { useCurrent } from '@/features/auth/api/use-current';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export const NotificationBell = () => {
+  const [view, setView] = useState<'all' | 'unread'>('all');
   const queryClient = useQueryClient();
   const { data: user } = useCurrent();
   const { data: notifications, isLoading: isNotificationsLoading } =
@@ -30,6 +32,13 @@ export const NotificationBell = () => {
 
   const unreadCount =
     notifications?.documents.filter((n) => !n.isRead).length || 0;
+
+  const filteredNotifications = notifications?.documents.filter((notification) => {
+    if (view === 'unread') {
+      return !notification.isRead;
+    }
+    return true;
+  }) || [];
 
   useEffect(() => {
     if (!user?.$id) return;
@@ -81,22 +90,32 @@ export const NotificationBell = () => {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
-        <div className="p-3 border-b">
+      <PopoverContent className="w-[340px] p-0" align="end">
+        <div className="p-3 border-b flex items-center justify-between">
           <h4 className="font-semibold text-sm">Notifications</h4>
+          <Tabs value={view} onValueChange={(val) => setView(val as 'all' | 'unread')}>
+            <TabsList className="h-7 p-0.5 bg-muted">
+              <TabsTrigger value="all" className="text-xs px-2.5 py-0.5">
+                All
+              </TabsTrigger>
+              <TabsTrigger value="unread" className="text-xs px-2.5 py-0.5">
+                Unread
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
         <ScrollArea className="h-80">
           {isNotificationsLoading ? (
             <div className="p-4 text-center text-sm text-muted-foreground">
               Loading...
             </div>
-          ) : !notifications || notifications.documents.length === 0 ? (
+          ) : filteredNotifications.length === 0 ? (
             <div className="p-4 text-center text-sm text-muted-foreground">
-              No notifications
+              {view === 'unread' ? 'No unread notifications' : 'No notifications'}
             </div>
           ) : (
             <div className="flex flex-col">
-              {notifications.documents.map((notification: Notification) => (
+              {filteredNotifications.map((notification: Notification) => (
                 <div
                   key={notification.$id}
                   className={cn(

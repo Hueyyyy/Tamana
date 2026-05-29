@@ -88,6 +88,7 @@ export const MemberList = () => {
             <div className="flex items-center gap-2">
               <MemberAvatar
                 name={member.name}
+                imageUrl={member.avatarUrl}
                 className="size-10"
                 fallbackClassName="text-lg"
               />

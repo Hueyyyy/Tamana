@@ -143,7 +143,7 @@ export const SubTasks = ({ task }: SubTasksProps) => {
                 <div className="flex items-center gap-x-4 shrink-0 pl-3">
                   {subTask.assignee && (
                     <div className="flex items-center gap-x-1.5 max-w-[140px]">
-                      <MemberAvatar name={subTask.assignee.name} className="size-5 shrink-0" />
+                      <MemberAvatar name={subTask.assignee.name} imageUrl={subTask.assignee.avatarUrl} className="size-5 shrink-0" />
                       <span className="text-xs text-muted-foreground truncate hidden md:block">
                         {subTask.assignee.name}
                       </span>

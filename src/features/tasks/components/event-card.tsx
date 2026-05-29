@@ -58,7 +58,7 @@ export const EventCard = ({
         <div className="flex items-center gap-x-1">
           {assignee && (
             <>
-              <MemberAvatar name={assignee.name} />
+              <MemberAvatar name={assignee.name} imageUrl={assignee.avatarUrl} />
               <div className="size-1 rounded-full bg-neutral-300" />
             </>
           )}

@@ -5,6 +5,7 @@ import {
     MEMBERS_ID,
     WORKSPACES_ID,
     NOTIFICATIONS_ID,
+    IMAGES_BUCKET_ID,
 } from '@/config'
 
 //Libs
@@ -42,13 +43,28 @@ const app = new Hono()
             [Query.equal('workspaceId',workspaceId)]
         );
 
+        const storage = c.get('storage')
         const populatedMembers = await Promise.all(
             members.documents.map (async (member) => {
                 const user = await users.get(member.userId)
+                const imageId = user.prefs?.imageId
+                let avatarUrl: string | undefined
+                if (imageId) {
+                    try {
+                        const arrayBuffer = await storage.getFilePreview(
+                            IMAGES_BUCKET_ID,
+                            imageId,
+                        )
+                        avatarUrl = `data:image/png;base64,${Buffer.from(arrayBuffer).toString('base64')}`
+                    } catch (error) {
+                        console.error("Failed to get member file preview:", error)
+                    }
+                }
                 return {
                     ...member,
                     name: user.name || user.email,
-                    email: user.email
+                    email: user.email,
+                    avatarUrl
                 }
             })
         )
@@ -58,6 +74,7 @@ const app = new Hono()
     .get('/memberinfo', sessionMiddleware, zValidator('query', z.object({ workspaceId: z.string(), userId: z.string() })) , async (c) => {
         const { workspaceId, userId } = c.req.valid('query');
         const databases = c.get('databases');
+        const { users } = await createAdminClient();
 
         const member = await getMember({
             databases,
@@ -69,7 +86,30 @@ const app = new Hono()
             return c.json({error: 'Unauthorized'}, 401)
         }
 
-        return c.json({data: {...member, name: member.name || member.email}})
+        const user = await users.get(userId);
+        const imageId = user.prefs?.imageId;
+        let avatarUrl: string | undefined
+        if (imageId) {
+            try {
+                const storage = c.get('storage');
+                const arrayBuffer = await storage.getFilePreview(
+                    IMAGES_BUCKET_ID,
+                    imageId,
+                )
+                avatarUrl = `data:image/png;base64,${Buffer.from(arrayBuffer).toString('base64')}`
+            } catch (error) {
+                console.error("Failed to get memberinfo file preview:", error)
+            }
+        }
+
+        return c.json({
+            data: {
+                ...member,
+                name: user.name || user.email,
+                email: user.email,
+                avatarUrl
+            }
+        })
     })
     .delete('/:memberId', sessionMiddleware, async (c) => {
         const { memberId } = c.req.param();
