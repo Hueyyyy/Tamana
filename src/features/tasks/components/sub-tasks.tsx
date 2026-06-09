@@ -1,15 +1,17 @@
 'use client';
 
 // React / Next
+import { useState } from 'react';
 import Link from 'next/link';
 
 // Hooks
 import { useWorkspaceId } from '@/features/workspaces/hooks/use-workspace-id';
 import { useGetTasks } from '../api/use-get-tasks';
 import { useCreateTaskModal } from '../hooks/use-create-task-modal';
+import { useGetMembers } from '@/features/members/api/use-get-members';
 
 // Types
-import { Task } from '../types';
+import { Task, TaskStatus, TaskPriority } from '../types';
 
 // Components
 import { Button } from '@/components/ui/button';
@@ -25,8 +27,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { useUpdateTask } from '../api/use-update-task';
-import { TaskStatus } from '../types';
+import { Member } from '@/features/members/type';
 
 const orderedStatuses = [
   TaskStatus.BACKLOG,
@@ -39,8 +47,198 @@ const orderedStatuses = [
 // Utils
 import { snakeCaseToTitleCase } from '@/lib/utils';
 
+const orderedPriorities = [
+  TaskPriority.LOW,
+  TaskPriority.MEDIUM,
+  TaskPriority.HIGH,
+  TaskPriority.URGENT,
+];
+
 // Icons
-import { PlusIcon, MoreVerticalIcon, ListTodoIcon, ArrowRightIcon, Loader } from 'lucide-react';
+import { PlusIcon, MoreVerticalIcon, ListTodoIcon, ArrowRightIcon, Loader, CalendarIcon } from 'lucide-react';
+
+interface SubTaskRowProps {
+  subTask: Task;
+  workspaceId: string;
+  members: { documents: Member[] } | undefined;
+  updateTask: ReturnType<typeof useUpdateTask>['mutate'];
+  isUpdating: boolean;
+}
+
+const SubTaskRow = ({
+  subTask,
+  workspaceId,
+  members,
+  updateTask,
+  isUpdating,
+}: SubTaskRowProps) => {
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+
+  const handleStatusChange = (status: TaskStatus) => {
+    updateTask({
+      param: { taskId: subTask.$id },
+      json: { status },
+    });
+  };
+
+  const handleAssigneeChange = (assigneeId: string | null) => {
+    updateTask({
+      param: { taskId: subTask.$id },
+      json: { assigneeId },
+    });
+  };
+
+  const handlePriorityChange = (priority: TaskPriority) => {
+    updateTask({
+      param: { taskId: subTask.$id },
+      json: { priority },
+    });
+  };
+
+  const handleDateChange = (date: Date | undefined) => {
+    if (!date) return;
+    updateTask({
+      param: { taskId: subTask.$id },
+      json: { dueDate: date },
+    });
+    setIsDatePickerOpen(false);
+  };
+
+  return (
+    <div className="flex items-center justify-between p-3 rounded-lg border bg-background hover:bg-muted/30 transition-all group">
+      <div className="flex items-center gap-x-3 min-w-0 flex-1">
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            <button className="focus:outline-none disabled:opacity-50" disabled={isUpdating}>
+              <Badge variant={subTask.status} className="shrink-0 text-[10px] uppercase font-semibold tracking-wider hover:opacity-85 cursor-pointer transition select-none">
+                {snakeCaseToTitleCase(subTask.status)}
+              </Badge>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-36">
+            {orderedStatuses.map((status) => (
+              <DropdownMenuItem
+                key={status}
+                onClick={() => handleStatusChange(status)}
+                className="cursor-pointer p-1"
+                disabled={subTask.status === status}
+              >
+                <Badge
+                  variant={status}
+                  className="w-full text-center justify-center text-[10px] uppercase font-semibold tracking-wider py-1 pointer-events-none"
+                >
+                  {snakeCaseToTitleCase(status)}
+                </Badge>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <Link
+          href={`/workspaces/${workspaceId}/tasks/${subTask.$id}`}
+          className="text-sm font-medium hover:underline text-foreground truncate flex items-center gap-x-1.5"
+        >
+          <span>{subTask.name}</span>
+          <ArrowRightIcon className="size-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground shrink-0" />
+        </Link>
+      </div>
+
+      <div className="flex items-center gap-x-4 shrink-0 pl-3">
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            <button className="focus:outline-none disabled:opacity-50 flex items-center gap-x-1.5 max-w-[140px] hover:bg-muted p-1 rounded transition text-left" disabled={isUpdating}>
+              <MemberAvatar
+                name={subTask.assignee?.name || "Unassigned"}
+                imageUrl={subTask.assignee?.avatarUrl}
+                className="size-5 shrink-0"
+                fallbackClassName="text-[10px]"
+              />
+              <span className="text-xs text-muted-foreground truncate hidden md:block">
+                {subTask.assignee?.name || "Unassigned"}
+              </span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48 max-h-[250px] overflow-y-auto">
+            <DropdownMenuItem
+              onClick={() => handleAssigneeChange(null)}
+              className="cursor-pointer flex items-center gap-x-2 p-1.5"
+              disabled={!subTask.assigneeId}
+            >
+              <div className="size-5 rounded-full bg-neutral-200 flex items-center justify-center text-neutral-500 text-[8px] font-medium">
+                U
+              </div>
+              <span className="text-xs text-muted-foreground font-medium">Unassigned</span>
+            </DropdownMenuItem>
+            {members?.documents.map((member) => (
+              <DropdownMenuItem
+                key={member.$id}
+                onClick={() => handleAssigneeChange(member.$id)}
+                className="cursor-pointer flex items-center gap-x-2 p-1.5"
+                disabled={subTask.assigneeId === member.$id}
+              >
+                <MemberAvatar
+                  name={member.name}
+                  imageUrl={member.avatarUrl}
+                  className="size-5"
+                />
+                <span className="text-xs font-medium">{member.name}</span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            <button className="focus:outline-none disabled:opacity-50 flex items-center gap-x-1 hover:bg-muted p-1 rounded transition" disabled={isUpdating}>
+              <Badge variant={subTask.priority || TaskPriority.MEDIUM} className="uppercase font-bold tracking-wider text-[10px] px-2 py-0.5 cursor-pointer hover:opacity-85 select-none">
+                {(subTask.priority || TaskPriority.MEDIUM).toLowerCase()}
+              </Badge>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-28">
+            {orderedPriorities.map((priority) => (
+              <DropdownMenuItem
+                key={priority}
+                onClick={() => handlePriorityChange(priority)}
+                className="cursor-pointer p-1"
+                disabled={subTask.priority === priority}
+              >
+                <Badge
+                  variant={priority}
+                  className="w-full text-center justify-center text-[10px] uppercase font-bold tracking-wider py-1 pointer-events-none"
+                >
+                  {priority.toLowerCase()}
+                </Badge>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen} modal={false}>
+          <PopoverTrigger asChild>
+            <button className="focus:outline-none disabled:opacity-50 flex items-center gap-x-1 hover:bg-muted p-1 rounded transition text-left" disabled={isUpdating}>
+              <CalendarIcon className="size-3.5 text-muted-foreground shrink-0" />
+              <TaskDate value={subTask.dueDate} className="text-xs font-medium" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              mode="single"
+              selected={subTask.dueDate ? new Date(subTask.dueDate) : undefined}
+              onSelect={handleDateChange}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+
+        <TaskActions id={subTask.$id} projectId={subTask.projectId}>
+          <Button variant="ghost" size="icon" className="size-8 h-8 w-8 hover:bg-muted">
+            <MoreVerticalIcon className="size-4" />
+          </Button>
+        </TaskActions>
+      </div>
+    </div>
+  );
+};
 
 interface SubTasksProps {
   task: Task;
@@ -48,6 +246,7 @@ interface SubTasksProps {
 
 export const SubTasks = ({ task }: SubTasksProps) => {
   const workspaceId = useWorkspaceId();
+  const { data: members } = useGetMembers({ workspaceId });
   const { open } = useCreateTaskModal();
   const { mutate: updateTask, isPending: isUpdating } = useUpdateTask();
 
@@ -58,13 +257,6 @@ export const SubTasks = ({ task }: SubTasksProps) => {
 
   const handleAddSubTask = () => {
     open(TaskStatus.BACKLOG, task.projectId, task.$id);
-  };
-
-  const handleStatusChange = (subTaskId: string, status: TaskStatus) => {
-    updateTask({
-      param: { taskId: subTaskId },
-      json: { status },
-    });
   };
 
   return (
@@ -100,65 +292,14 @@ export const SubTasks = ({ task }: SubTasksProps) => {
         ) : (
           <div className="flex flex-col gap-y-2 max-h-[400px] overflow-y-auto pr-1">
             {subTasks.documents.map((subTask) => (
-              <div
+              <SubTaskRow
                 key={subTask.$id}
-                className="flex items-center justify-between p-3 rounded-lg border bg-background hover:bg-muted/30 transition-all group"
-              >
-                <div className="flex items-center gap-x-3 min-w-0 flex-1">
-                  <DropdownMenu modal={false}>
-                    <DropdownMenuTrigger asChild>
-                      <button className="focus:outline-none disabled:opacity-50" disabled={isUpdating}>
-                        <Badge variant={subTask.status} className="shrink-0 text-[10px] uppercase font-semibold tracking-wider hover:opacity-85 cursor-pointer transition select-none">
-                          {snakeCaseToTitleCase(subTask.status)}
-                        </Badge>
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-36">
-                      {orderedStatuses.map((status) => (
-                        <DropdownMenuItem
-                          key={status}
-                          onClick={() => handleStatusChange(subTask.$id, status)}
-                          className="cursor-pointer p-1"
-                          disabled={subTask.status === status}
-                        >
-                          <Badge
-                            variant={status}
-                            className="w-full text-center justify-center text-[10px] uppercase font-semibold tracking-wider py-1 pointer-events-none"
-                          >
-                            {snakeCaseToTitleCase(status)}
-                          </Badge>
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <Link
-                    href={`/workspaces/${workspaceId}/tasks/${subTask.$id}`}
-                    className="text-sm font-medium hover:underline text-foreground truncate flex items-center gap-x-1.5"
-                  >
-                    <span>{subTask.name}</span>
-                    <ArrowRightIcon className="size-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground shrink-0" />
-                  </Link>
-                </div>
-
-                <div className="flex items-center gap-x-4 shrink-0 pl-3">
-                  {subTask.assignee && (
-                    <div className="flex items-center gap-x-1.5 max-w-[140px]">
-                      <MemberAvatar name={subTask.assignee.name} imageUrl={subTask.assignee.avatarUrl} className="size-5 shrink-0" />
-                      <span className="text-xs text-muted-foreground truncate hidden md:block">
-                        {subTask.assignee.name}
-                      </span>
-                    </div>
-                  )}
-                  {subTask.dueDate && (
-                    <TaskDate value={subTask.dueDate} className="text-xs" />
-                  )}
-                  <TaskActions id={subTask.$id} projectId={subTask.projectId}>
-                    <Button variant="ghost" size="icon" className="size-8 h-8 w-8 hover:bg-muted">
-                      <MoreVerticalIcon className="size-4" />
-                    </Button>
-                  </TaskActions>
-                </div>
-              </div>
+                subTask={subTask}
+                workspaceId={workspaceId}
+                members={members}
+                updateTask={updateTask}
+                isUpdating={isUpdating}
+              />
             ))}
           </div>
         )}
