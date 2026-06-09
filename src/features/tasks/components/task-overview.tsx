@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 //Types
 import { Task, TaskStatus, TaskPriority } from '../types';
 
@@ -14,6 +16,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { useUpdateTask } from '../api/use-update-task';
 
 const orderedStatuses = [
@@ -39,12 +47,17 @@ import { snakeCaseToTitleCase } from '@/lib/utils';
 
 //Hooks
 import { useEditTaskModal } from '../hooks/use-edit-task-modal';
+import { useWorkspaceId } from '@/features/workspaces/hooks/use-workspace-id';
+import { useGetMembers } from '@/features/members/api/use-get-members';
 
 interface TaskOverviewProps {
   task: Task;
 }
 
 export const TaskOverview = ({ task }: TaskOverviewProps) => {
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const workspaceId = useWorkspaceId();
+  const { data: members } = useGetMembers({ workspaceId });
   const { open } = useEditTaskModal();
   const { mutate: updateTask, isPending: isUpdating } = useUpdateTask();
 
@@ -60,6 +73,22 @@ export const TaskOverview = ({ task }: TaskOverviewProps) => {
       param: { taskId: task.$id },
       json: { priority },
     });
+  };
+
+  const handleAssigneeChange = (assigneeId: string | null) => {
+    updateTask({
+      param: { taskId: task.$id },
+      json: { assigneeId },
+    });
+  };
+
+  const handleDateChange = (date: Date | undefined) => {
+    if (!date) return;
+    updateTask({
+      param: { taskId: task.$id },
+      json: { dueDate: date },
+    });
+    setIsDatePickerOpen(false);
   };
 
   return (
@@ -79,17 +108,64 @@ export const TaskOverview = ({ task }: TaskOverviewProps) => {
         <DottedSeparator className="my-4" />
         <div className="flex flex-col gap-y-4">
           <OverviewProperty label="Assignee">
-            {task.assignee ? (
-              <div className="flex items-center gap-x-2">
-                <MemberAvatar name={task.assignee.name} imageUrl={task.assignee.avatarUrl} className="size-6" />
-                <p className="text-sm font-medium">{task.assignee.name}</p>
-              </div>
-            ) : (
-              <span className="text-sm text-muted-foreground font-medium">Unassigned</span>
-            )}
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <button className="focus:outline-none disabled:opacity-50 flex items-center gap-x-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 p-1.5 rounded transition text-left" disabled={isUpdating}>
+                  {task.assignee ? (
+                    <>
+                      <MemberAvatar name={task.assignee.name} imageUrl={task.assignee.avatarUrl} className="size-6" />
+                      <p className="text-sm font-medium">{task.assignee.name}</p>
+                    </>
+                  ) : (
+                    <span className="text-sm text-muted-foreground font-medium">Unassigned</span>
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56 max-h-[300px] overflow-y-auto">
+                <DropdownMenuItem
+                  onClick={() => handleAssigneeChange(null)}
+                  className="cursor-pointer flex items-center gap-x-2 p-2"
+                  disabled={!task.assigneeId}
+                >
+                  <div className="size-6 rounded-full bg-neutral-200 flex items-center justify-center text-neutral-500 text-[10px] font-medium">
+                    U
+                  </div>
+                  <span className="text-sm text-muted-foreground font-medium">Unassigned</span>
+                </DropdownMenuItem>
+                {members?.documents.map((member) => (
+                  <DropdownMenuItem
+                    key={member.$id}
+                    onClick={() => handleAssigneeChange(member.$id)}
+                    className="cursor-pointer flex items-center gap-x-2 p-2"
+                    disabled={task.assigneeId === member.$id}
+                  >
+                    <MemberAvatar
+                      name={member.name}
+                      imageUrl={member.avatarUrl}
+                      className="size-6"
+                    />
+                    <span className="text-sm font-medium">{member.name}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </OverviewProperty>
           <OverviewProperty label="Due date">
-            <TaskDate value={task.dueDate} className="text-sm font-medium" />
+            <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen} modal={false}>
+              <PopoverTrigger asChild>
+                <button className="focus:outline-none disabled:opacity-50 flex items-center gap-x-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 p-1.5 rounded transition text-left" disabled={isUpdating}>
+                  <TaskDate value={task.dueDate} className="text-sm font-medium" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={task.dueDate ? new Date(task.dueDate) : undefined}
+                  onSelect={handleDateChange}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </OverviewProperty>
           <OverviewProperty label="Status">
             <DropdownMenu modal={false}>

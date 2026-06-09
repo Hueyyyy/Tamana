@@ -5,6 +5,9 @@ import { useGetProjects } from '@/features/projects/api/use-get-projects';
 import { useCreateProjectModal } from '@/features/projects/hooks/use-create-project-modal';
 import { useWorkspaceId } from '@/features/workspaces/hooks/use-workspace-id';
 import { usePathname } from 'next/navigation';
+import { useCurrent } from '@/features/auth/api/use-current';
+import { useGetMembers } from '@/features/members/api/use-get-members';
+import { MemberRole } from '@/features/members/type';
 
 //Next
 import Link from 'next/link';
@@ -18,18 +21,25 @@ import { ProjectAvatar } from '@/features/projects/components/project-avatar';
 
 export const Projects = () => {
   const workspaceId = useWorkspaceId();
+  const { data: user } = useCurrent();
+  const { data: members } = useGetMembers({ workspaceId });
   const { data } = useGetProjects({ workspaceId });
   const pathname = usePathname();
   const { open } = useCreateProjectModal();
+
+  const currentMember = members?.documents.find((m) => m.userId === user?.$id);
+  const isAdmin = currentMember?.role === MemberRole.ADMIN;
 
   return (
     <div className="flex flex-col gap-y-2">
       <div className="flex items-center justify-between">
         <p className="text-xs uppercase text-neutral-500">Projects</p>
-        <RiAddCircleFill
-          className="size-5 text-neutral-500 cursor-pointer hover:opacity-75 transition"
-          onClick={open}
-        />
+        {isAdmin && (
+          <RiAddCircleFill
+            className="size-5 text-neutral-500 cursor-pointer hover:opacity-75 transition"
+            onClick={open}
+          />
+        )}
       </div>
       <div className="max-h-[500px] overflow-y-auto pb-6 md:pb-0">
         {data?.documents.map((project) => {

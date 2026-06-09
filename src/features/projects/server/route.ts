@@ -16,6 +16,7 @@ import { getMember } from "@/features/members/utils";
 //Types
 import { Project } from "../type";
 import { TaskStatus } from "@/features/tasks/types";
+import { MemberRole } from "@/features/members/type";
 
 //Schemas
 import { createProjectSchema, updateProjectSchema } from "../schemas";
@@ -284,7 +285,7 @@ const app = new Hono()
             userId: user.$id
         })
 
-        if (!member) {
+        if (!member || member.role !== MemberRole.ADMIN) {
             return c.json({error: 'Unauthorized'}, 401)
         }
 
@@ -344,7 +345,7 @@ const app = new Hono()
             databases,
           })
     
-          if (!member) {
+          if (!member || member.role !== MemberRole.ADMIN) {
             return c.json({ error: 'Unauthorized' }, 401)
           }
     
@@ -400,7 +401,7 @@ const app = new Hono()
           workspaceId: project.workspaceId,
         })
     
-        if (!member) {
+        if (!member || member.role !== MemberRole.ADMIN) {
           return c.json({ error: 'Unauthorized' }, 401)
         }
 

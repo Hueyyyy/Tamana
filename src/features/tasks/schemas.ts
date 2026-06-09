@@ -7,7 +7,7 @@ export const createTaskSchema = z.object({
   status: z.nativeEnum(TaskStatus, {required_error:'Required'}),
   workspaceId:z.string().trim().min(1,'Required'),
   assigneeId: z.string().trim().optional().nullable(),
-  dueDate: z.coerce.date(),
+  dueDate: z.coerce.date().optional(),
   projectId: z.string().trim().min(1,'Required'),
   parentId: z.string().optional().nullable(),
   priority: z.nativeEnum(TaskPriority).optional().default(TaskPriority.MEDIUM),

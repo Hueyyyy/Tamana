@@ -41,19 +41,22 @@ interface DataCalendarProps {
 type Action = 'PREV' | 'NEXT' | 'TODAY';
 
 export const DataCalendar = ({ data }: DataCalendarProps) => {
+  const firstValidTask = data.find((task) => !!task.dueDate);
   const [value, setValue] = useState(
-    data.length > 0 ? new Date(data[0].dueDate) : new Date(),
+    firstValidTask ? new Date(firstValidTask.dueDate!) : new Date(),
   );
 
-  const events = data.map((task) => ({
-    start: new Date(task.dueDate),
-    end: new Date(task.dueDate),
-    title: task.name,
-    project: task.project,
-    assignee: task.assignee,
-    status: task.status,
-    id: task.$id,
-  }));
+  const events = data
+    .filter((task) => !!task.dueDate)
+    .map((task) => ({
+      start: new Date(task.dueDate!),
+      end: new Date(task.dueDate!),
+      title: task.name,
+      project: task.project,
+      assignee: task.assignee,
+      status: task.status,
+      id: task.$id,
+    }));
 
   const handleNavigate = (action: Action) => {
     setValue((value) => {

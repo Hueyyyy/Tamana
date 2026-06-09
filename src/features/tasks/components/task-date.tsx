@@ -2,11 +2,19 @@ import { cn } from '@/lib/utils';
 import { differenceInDays, format } from 'date-fns';
 
 interface TaskDateProps {
-  value: string;
+  value?: string;
   className?: string;
 }
 
 export const TaskDate = ({ value, className }: TaskDateProps) => {
+  if (!value) {
+    return (
+      <div className={cn(className)}>
+        <span className="text-muted-foreground text-sm">No due date</span>
+      </div>
+    );
+  }
+
   const daysLeft = differenceInDays(new Date(value), new Date());
 
   let textColor = 'text-muted-foreground';

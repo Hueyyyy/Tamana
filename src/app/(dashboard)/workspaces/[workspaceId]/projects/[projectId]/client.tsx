@@ -20,6 +20,9 @@ import { Button } from '@/components/ui/button';
 //Api
 import { useGetProject } from '@/features/projects/api/use-get-project';
 import { useGetProjectAnalytics } from '@/features/projects/api/use-get-project-analytics';
+import { useCurrent } from '@/features/auth/api/use-current';
+import { useGetMembers } from '@/features/members/api/use-get-members';
+import { MemberRole } from '@/features/members/type';
 
 export const ProjectIdClient = () => {
   const projectId = useProjectId();
@@ -29,10 +32,19 @@ export const ProjectIdClient = () => {
   const { data: projectAnalytics } = useGetProjectAnalytics({
     projectId,
   });
+  const { data: user, isLoading: isLoadingUser } = useCurrent();
+  const { data: members, isLoading: isLoadingMembers } = useGetMembers({
+    workspaceId: project?.workspaceId ?? '',
+  });
 
-  if (isLoadingProject) return <PageLoader />;
+  const isLoading = isLoadingProject || isLoadingUser || isLoadingMembers;
+
+  if (isLoading) return <PageLoader />;
 
   if (!project) return <PageError message="Project not found" />;
+
+  const currentMember = members?.documents.find((m) => m.userId === user?.$id);
+  const isAdmin = currentMember?.role === MemberRole.ADMIN;
 
   return (
     <div className="flex flex-col gap-y-4">
@@ -45,16 +57,18 @@ export const ProjectIdClient = () => {
           />
           <p className="text-lg font-semibold truncate">{project.name}</p>
         </div>
-        <div>
-          <Button variant={'secondary'} size={'sm'} asChild>
-            <Link
-              href={`/workspaces/${project.workspaceId}/projects/${project.$id}/settings`}
-            >
-              <Pencil className="size-4 mr-2" />
-              Edit Project
-            </Link>
-          </Button>
-        </div>
+        {isAdmin && (
+          <div>
+            <Button variant={'secondary'} size={'sm'} asChild>
+              <Link
+                href={`/workspaces/${project.workspaceId}/projects/${project.$id}/settings`}
+              >
+                <Pencil className="size-4 mr-2" />
+                Edit Project
+              </Link>
+            </Button>
+          </div>
+        )}
       </div>
       {projectAnalytics ? <Analytics data={projectAnalytics} /> : null}
       <TaskViewSwitcher hideProjectFilter />

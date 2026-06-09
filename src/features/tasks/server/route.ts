@@ -162,19 +162,28 @@ const app = new Hono()
         const subTasksList = parentIds.length > 0 ? await databases.listDocuments<Task>(
             DATABASE_ID,
             TASKS_ID,
-            [Query.equal('parentId', parentIds)]
+            [
+                Query.equal('parentId', parentIds),
+                Query.limit(1000)
+            ]
         ) : { documents: [] }
 
         const projects = await databases.listDocuments<Project>(
             DATABASE_ID,
             PROJECTS_ID,
-            projectIds.length > 0 ? [Query.equal('$id', projectIds)] : []
+            projectIds.length > 0 ? [
+                Query.equal('$id', projectIds),
+                Query.limit(100)
+            ] : []
         )
 
         const members = await databases.listDocuments(
             DATABASE_ID,
             MEMBERS_ID,
-            assigneeIds.length > 0 ? [Query.equal('$id', assigneeIds)] : []
+            assigneeIds.length > 0 ? [
+                Query.equal('$id', assigneeIds),
+                Query.limit(100)
+            ] : []
         )
 
         const storage = c.get('storage')
@@ -210,13 +219,15 @@ const app = new Hono()
             const taskSubTasks = subTasksList.documents.filter((subTask) => subTask.parentId === task.$id)
             const totalSubTasks = taskSubTasks.length
             const completedSubTasks = taskSubTasks.filter((subTask) => subTask.status === TaskStatus.DONE).length
+            const backlogSubTasks = taskSubTasks.filter((subTask) => subTask.status === TaskStatus.BACKLOG).length
 
             return {
                 ...task,
                 project,
                 assignee,
                 totalSubTasks,
-                completedSubTasks
+                completedSubTasks,
+                backlogSubTasks
             }
         })
 
@@ -310,10 +321,14 @@ const app = new Hono()
         const subTasks = await databases.listDocuments<Task>(
             DATABASE_ID,
             TASKS_ID,
-            [Query.equal('parentId', taskId)]
+            [
+                Query.equal('parentId', taskId),
+                Query.limit(100)
+            ]
         )
         const totalSubTasks = subTasks.documents.length
         const completedSubTasks = subTasks.documents.filter(st => st.status === TaskStatus.DONE).length
+        const backlogSubTasks = subTasks.documents.filter(st => st.status === TaskStatus.BACKLOG).length
 
         return c.json({
             data: {
@@ -322,7 +337,8 @@ const app = new Hono()
                 assignee,
                 parentTask,
                 totalSubTasks,
-                completedSubTasks
+                completedSubTasks,
+                backlogSubTasks
             }
         })
     })
@@ -549,14 +565,19 @@ const app = new Hono()
             }));
         }
 
-        if (dueDate && new Date(dueDate).getTime() !== new Date(existingTask.dueDate).getTime()) {
+        const existingDueDate = existingTask.dueDate ? new Date(existingTask.dueDate).getTime() : undefined;
+        const newDueDate = dueDate ? new Date(dueDate).getTime() : undefined;
+
+        if (newDueDate !== existingDueDate) {
             activities.push(createActivity({
                 databases,
                 taskId,
                 workspaceId: existingTask.workspaceId,
                 userId: user.$id,
                 type: ActivityType.DUE_DATE_CHANGED,
-                description: `changed due date to ${new Date(dueDate).toLocaleDateString()}`,
+                description: dueDate
+                    ? `changed due date to ${new Date(dueDate).toLocaleDateString()}`
+                    : 'removed the due date',
             }));
         }
 

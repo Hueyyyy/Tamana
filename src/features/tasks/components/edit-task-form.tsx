@@ -50,7 +50,7 @@ const formSchema = z.object({
   name: z.string().trim().min(1, 'Required'),
   status: z.nativeEnum(TaskStatus),
   assigneeId: z.string().trim().optional().nullable(),
-  dueDate: z.coerce.date(),
+  dueDate: z.coerce.date().optional(),
   projectId: z.string().trim().min(1, 'Required'),
   priority: z.nativeEnum(TaskPriority),
 });

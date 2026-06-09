@@ -10,6 +10,8 @@ import { useGetWorkspaceAnalytics } from '@/features/workspaces/api/use-get-work
 import { useGetProjects } from '@/features/projects/api/use-get-projects';
 import { useGetTasks } from '@/features/tasks/api/use-get-tasks';
 import { useGetMembers } from '@/features/members/api/use-get-members';
+import { useCurrent } from '@/features/auth/api/use-current';
+import { MemberRole } from '@/features/members/type';
 
 //Components
 import { PageLoader } from '@/components/page-loader';
@@ -49,20 +51,25 @@ export const WorkspaceIdClient = () => {
   const { data: members, isLoading: isLoadingMembers } = useGetMembers({
     workspaceId,
   });
+  const { data: user, isLoading: isLoadingUser } = useCurrent();
 
   const isLoading =
     isLoadingAnalytics ||
     isLoadingProjects ||
     isLoadingTasks ||
-    isLoadingMembers;
+    isLoadingMembers ||
+    isLoadingUser;
 
   if (isLoading) {
     return <PageLoader />;
   }
 
-  if (!analytics || !projects || !tasks || !members) {
+  if (!analytics || !projects || !tasks || !members || !user) {
     return <PageError message="Failed to load workspace data" />;
   }
+
+  const currentMember = members?.documents.find((m) => m.userId === user?.$id);
+  const isAdmin = currentMember?.role === MemberRole.ADMIN;
 
   return (
     <div className="h-full flex flex-col space-y-4 max-h-screen">
@@ -73,7 +80,7 @@ export const WorkspaceIdClient = () => {
           total={tasks.total}
           disableCreate={projects.total === 0}
         />
-        <ProjectList data={projects.documents} total={projects.total} />
+        <ProjectList data={projects.documents} total={projects.total} isAdmin={isAdmin} />
         <MemberList data={members.documents} total={members.total} />
       </div>
     </div>
@@ -114,13 +121,17 @@ export const TaskList = ({ data, total, disableCreate }: TaskListProp) => {
                     <p className="text-lg font-medium truncate">{task.name}</p>
                     <div className="flex items-center gap-x-2">
                       <p className="truncate">{task.project?.name}</p>
-                      <div className="size-1 rounded-full bg-neutral-300" />
-                      <div className="flex items-center gap-x-1 text-sm text-muted-foreground">
-                        <CalendarIcon className="size-3 mr-1" />
-                        <span className="truncate">
-                          {formatDistanceToNow(new Date(task.dueDate))}
-                        </span>
-                      </div>
+                      {task.dueDate && (
+                        <>
+                          <div className="size-1 rounded-full bg-neutral-300" />
+                          <div className="flex items-center gap-x-1 text-sm text-muted-foreground">
+                            <CalendarIcon className="size-3 mr-1" />
+                            <span className="truncate">
+                              {formatDistanceToNow(new Date(task.dueDate))}
+                            </span>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -142,9 +153,10 @@ export const TaskList = ({ data, total, disableCreate }: TaskListProp) => {
 interface ProjectListProp {
   data: Project[];
   total: number;
+  isAdmin?: boolean;
 }
 
-export const ProjectList = ({ data, total }: ProjectListProp) => {
+export const ProjectList = ({ data, total, isAdmin }: ProjectListProp) => {
   const { open: createProject } = useCreateProjectModal();
   const workspaceId = useWorkspaceId();
 
@@ -153,13 +165,15 @@ export const ProjectList = ({ data, total }: ProjectListProp) => {
       <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-4">
         <div className="flex items-center justify-between">
           <p className="text-lg font-semibold">Projects ({total})</p>
-          <Button
-            onClick={() => createProject()}
-            variant={'secondary'}
-            size={'icon'}
-          >
-            <PlusIcon className="size-4 text-neutral-400" />
-          </Button>
+          {isAdmin && (
+            <Button
+              onClick={() => createProject()}
+              variant={'secondary'}
+              size={'icon'}
+            >
+              <PlusIcon className="size-4 text-neutral-400" />
+            </Button>
+          )}
         </div>
         <DottedSeparator className="my-4" />
         <ul className="grid grid-cols-1 lg:grid-cols-2 gap-4 max-h-[254px] overflow-y-auto">

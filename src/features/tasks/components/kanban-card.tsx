@@ -39,8 +39,12 @@ export const KanbanCard = ({ task }: KanbanCardProps) => {
           imageUrl={task.assignee?.avatarUrl}
           fallbackClassName="text-[10px]"
         />
-        <div className="size-1 rounded-full bg-neutral-300" />
-        <TaskDate value={task.dueDate} className="text-xs" />
+        {task.dueDate && (
+          <>
+            <div className="size-1 rounded-full bg-neutral-300" />
+            <TaskDate value={task.dueDate} className="text-xs" />
+          </>
+        )}
       </div>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-x-1.5 min-w-0">

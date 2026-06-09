@@ -20,7 +20,7 @@ export type Task = Models.Document & {
   status: TaskStatus;
   assigneeId?: string | null;
   projectId: string;
-  dueDate: string;
+  dueDate?: string;
   position: number;
   workspaceId: string;
   description?: string;
@@ -29,4 +29,5 @@ export type Task = Models.Document & {
   priority?: TaskPriority;
   totalSubTasks?: number;
   completedSubTasks?: number;
+  backlogSubTasks?: number;
 }

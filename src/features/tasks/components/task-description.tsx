@@ -121,7 +121,7 @@ export const TaskDescription = ({ task }: TaskDescriptionProps) => {
       ) : (
         <div
           onClick={handleDescriptionClick}
-          className="cursor-pointer hover:bg-muted/30 p-2 rounded transition min-h-[100px] flex-grow"
+          className="cursor-pointer hover:bg-muted/30 p-2 rounded transition min-h-[100px] flex-grow whitespace-pre-wrap"
         >
           {task.description || (
             <span className="text-muted-foreground">No description set</span>
