@@ -60,7 +60,7 @@ export const NotificationBell = () => {
         if (!existing) {
           queryClient.invalidateQueries({ queryKey: ['notifications'] });
         } else {
-          queryClient.setQueryData(['notifications'], (old: any) => {
+          queryClient.setQueryData<{ documents: Notification[]; total: number }>(['notifications'], (old) => {
             if (!old) return old;
             return {
               ...old,
@@ -70,7 +70,7 @@ export const NotificationBell = () => {
           });
         }
       } else if (events.some((e) => e.includes('.update'))) {
-        queryClient.setQueryData(['notifications'], (old: any) => {
+        queryClient.setQueryData<{ documents: Notification[]; total: number }>(['notifications'], (old) => {
           if (!old) return old;
           return {
             ...old,
@@ -80,7 +80,7 @@ export const NotificationBell = () => {
           };
         });
       } else if (events.some((e) => e.includes('.delete'))) {
-        queryClient.setQueryData(['notifications'], (old: any) => {
+        queryClient.setQueryData<{ documents: Notification[]; total: number }>(['notifications'], (old) => {
           if (!old) return old;
           return {
             ...old,

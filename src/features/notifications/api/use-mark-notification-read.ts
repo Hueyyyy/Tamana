@@ -3,13 +3,15 @@ import { InferRequestType, InferResponseType } from "hono";
 import { client } from "@/lib/rpc";
 import { toast } from "sonner";
 
+import { Notification } from "../types";
+
 type ResponseType = InferResponseType<typeof client.api.notifications[":notificationId"]["$patch"]>;
 type RequestType = InferRequestType<typeof client.api.notifications[":notificationId"]["$patch"]>;
 
 export const useMarkNotificationRead = () => {
   const queryClient = useQueryClient();
 
-  const mutation = useMutation<ResponseType, Error, RequestType>({
+  const mutation = useMutation<ResponseType, Error, RequestType, { previous: { documents: Notification[]; total: number } | undefined }>({
     mutationFn: async ({ param, json }) => {
       const response = await client.api.notifications[":notificationId"]["$patch"]({
         param,
@@ -25,21 +27,24 @@ export const useMarkNotificationRead = () => {
     // Flip the flag in the local cache immediately — no round-trip needed.
     onMutate: async ({ param }) => {
       await queryClient.cancelQueries({ queryKey: ["notifications"] });
-      const previous = queryClient.getQueryData(["notifications"]);
+      const previous = queryClient.getQueryData<{ documents: Notification[]; total: number }>(["notifications"]);
 
-      queryClient.setQueryData(["notifications"], (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          documents: old.documents.map((n: any) =>
-            n.$id === param.notificationId ? { ...n, isRead: true } : n
-          ),
-        };
-      });
+      queryClient.setQueryData<{ documents: Notification[]; total: number }>(
+        ["notifications"],
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            documents: old.documents.map((n) =>
+              n.$id === param.notificationId ? { ...n, isRead: true } : n
+            ),
+          };
+        }
+      );
 
       return { previous };
     },
-    onError: (_err, _vars, context: any) => {
+    onError: (_err, _vars, context) => {
       // Roll back to the snapshot taken before the optimistic update.
       if (context?.previous) {
         queryClient.setQueryData(["notifications"], context.previous);
