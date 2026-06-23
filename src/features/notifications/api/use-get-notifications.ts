@@ -14,6 +14,10 @@ export const useGetNotifications = () => {
       const { data } = await response.json();
       return data;
     },
+    staleTime: 30_000,            // consider fresh for 30s
+    refetchOnWindowFocus: true,   // re-sync when user switches back to tab
+    refetchInterval: 30_000,      // poll every 30s as Realtime failsafe
+    refetchIntervalInBackground: false, // only poll when tab is visible
   });
 
   return query;

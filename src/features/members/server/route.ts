@@ -23,7 +23,7 @@ import { sendEmailNotification } from '@/features/notifications/utils'
 const app = new Hono()
     .get('/', sessionMiddleware, zValidator('query', z.object({ workspaceId: z.string() })), async (c) => {
         const { workspaceId } = c.req.valid('query')
-        const { users } = await createAdminClient()
+        const { users, storage: adminStorage } = await createAdminClient()
         const databases = c.get('databases')
         const user = c.get('user')
 
@@ -43,7 +43,6 @@ const app = new Hono()
             [Query.equal('workspaceId',workspaceId)]
         );
 
-        const storage = c.get('storage')
         const populatedMembers = await Promise.all(
             members.documents.map (async (member) => {
                 const user = await users.get(member.userId)
@@ -51,7 +50,7 @@ const app = new Hono()
                 let avatarUrl: string | undefined
                 if (imageId) {
                     try {
-                        const arrayBuffer = await storage.getFilePreview(
+                        const arrayBuffer = await adminStorage.getFilePreview(
                             IMAGES_BUCKET_ID,
                             imageId,
                         )
@@ -74,7 +73,7 @@ const app = new Hono()
     .get('/memberinfo', sessionMiddleware, zValidator('query', z.object({ workspaceId: z.string(), userId: z.string() })) , async (c) => {
         const { workspaceId, userId } = c.req.valid('query');
         const databases = c.get('databases');
-        const { users } = await createAdminClient();
+        const { users, storage: adminStorage } = await createAdminClient();
 
         const member = await getMember({
             databases,
@@ -91,8 +90,7 @@ const app = new Hono()
         let avatarUrl: string | undefined
         if (imageId) {
             try {
-                const storage = c.get('storage');
-                const arrayBuffer = await storage.getFilePreview(
+                const arrayBuffer = await adminStorage.getFilePreview(
                     IMAGES_BUCKET_ID,
                     imageId,
                 )

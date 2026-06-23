@@ -23,6 +23,11 @@ export const useGetActivities = ({ taskId }: UseGetActivitiesProps) => {
 
       return data;
     },
+    // Re-sync when user switches back to the tab and poll every 30s so
+    // activity log entries from other users appear without a page reload.
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
   });
 
   return query;

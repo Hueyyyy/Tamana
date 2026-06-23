@@ -17,7 +17,7 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
           <Button
             asChild
             variant={'outline'}
-            className="text-black font-semibold"
+            className="text-neutral-900 dark:text-neutral-100 font-semibold"
             size={'lg'}
           >
             <Link href={pathName === '/sign-in' ? '/sign-up' : '/sign-in'}>

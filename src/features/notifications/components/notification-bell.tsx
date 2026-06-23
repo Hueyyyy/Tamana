@@ -48,8 +48,48 @@ export const NotificationBell = () => {
     const unsubscribe = client.subscribe(channel, (response) => {
       const payload = response.payload as Notification;
 
-      if (payload.userId === user.$id) {
-        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      if (payload.userId !== user.$id) return;
+
+      const events = response.events as string[];
+
+      if (events.some((e) => e.includes('.create'))) {
+        // Try to insert directly into cache. If the cache is empty (bell
+        // was never opened), fall back to a full invalidation so the event
+        // is never silently dropped.
+        const existing = queryClient.getQueryData(['notifications']);
+        if (!existing) {
+          queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        } else {
+          queryClient.setQueryData(['notifications'], (old: any) => {
+            if (!old) return old;
+            return {
+              ...old,
+              documents: [payload, ...old.documents],
+              total: old.total + 1,
+            };
+          });
+        }
+      } else if (events.some((e) => e.includes('.update'))) {
+        queryClient.setQueryData(['notifications'], (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            documents: old.documents.map((n: Notification) =>
+              n.$id === payload.$id ? payload : n
+            ),
+          };
+        });
+      } else if (events.some((e) => e.includes('.delete'))) {
+        queryClient.setQueryData(['notifications'], (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            documents: old.documents.filter(
+              (n: Notification) => n.$id !== payload.$id
+            ),
+            total: Math.max(0, old.total - 1),
+          };
+        });
       }
     });
 

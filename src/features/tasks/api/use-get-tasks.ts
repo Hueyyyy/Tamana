@@ -39,6 +39,12 @@ export const useGetTasks = ({workspaceId, projectId, assigneeId, status, priorit
 
       return data
     },
+    // Re-sync when the user switches back to the tab (e.g. after being
+    // notified by another user) and poll every 30s as a catch-all so
+    // tasks created by other users always appear within 30 seconds.
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false, // only poll when tab is visible
   })
   return query
 }

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { PopulatedComment } from '../types';
 import { formatDistanceToNow } from 'date-fns';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Trash, Pencil, X, Check, Paperclip } from 'lucide-react';
@@ -271,7 +271,10 @@ export const CommentItem = ({ comment, members }: CommentItemProps) => {
   return (
     <div className="flex gap-x-4 p-4 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 shadow-sm relative">
       <DeleteDialog />
-      <Avatar className="size-10">
+      <Avatar className="size-10 shrink-0">
+        {comment.userAvatar && (
+          <AvatarImage src={comment.userAvatar} alt={comment.userName} className="object-cover" />
+        )}
         <AvatarFallback className="bg-neutral-200 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 font-medium flex items-center justify-center">
           {comment.userName.charAt(0).toUpperCase()}
         </AvatarFallback>

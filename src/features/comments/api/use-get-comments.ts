@@ -23,6 +23,11 @@ export const useGetComments = ({ taskId }: UseGetCommentsProps) => {
 
       return data;
     },
+    // Re-sync when user switches back to the tab and poll every 30s so
+    // comments from other users appear without needing a page reload.
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
   });
 
   return query;

@@ -22,12 +22,32 @@ export const useMarkNotificationRead = () => {
 
       return await response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    // Flip the flag in the local cache immediately — no round-trip needed.
+    onMutate: async ({ param }) => {
+      await queryClient.cancelQueries({ queryKey: ["notifications"] });
+      const previous = queryClient.getQueryData(["notifications"]);
+
+      queryClient.setQueryData(["notifications"], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          documents: old.documents.map((n: any) =>
+            n.$id === param.notificationId ? { ...n, isRead: true } : n
+          ),
+        };
+      });
+
+      return { previous };
     },
-    onError: () => {
+    onError: (_err, _vars, context: any) => {
+      // Roll back to the snapshot taken before the optimistic update.
+      if (context?.previous) {
+        queryClient.setQueryData(["notifications"], context.previous);
+      }
       toast.error("Failed to mark notification as read");
     },
+    // No onSuccess invalidation needed — the Realtime subscriber will
+    // propagate the authoritative update from Appwrite automatically.
   });
 
   return mutation;

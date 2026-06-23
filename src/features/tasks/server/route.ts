@@ -93,7 +93,7 @@ const app = new Hono()
         dueDate: z.string().nullish(),      
         parentId: z.string().nullish(),
     })), async (c) => {
-        const { users } = await createAdminClient()
+        const { users, storage: adminStorage } = await createAdminClient()
         const user = c.get('user')
         const databases = c.get('databases')
         const {workspaceId, projectId, assigneeId, status, priority, search, dueDate, parentId} = c.req.valid('query')
@@ -186,7 +186,6 @@ const app = new Hono()
             ] : []
         )
 
-        const storage = c.get('storage')
         const assignees = await Promise.all(
             members.documents.map (async (member) => {
                 const user = await users.get(member.userId)
@@ -194,7 +193,7 @@ const app = new Hono()
                 let avatarUrl: string | undefined
                 if (imageId) {
                     try {
-                        const arrayBuffer = await storage.getFilePreview(
+                        const arrayBuffer = await adminStorage.getFilePreview(
                             IMAGES_BUCKET_ID,
                             imageId,
                         )
@@ -283,8 +282,9 @@ const app = new Hono()
                 let avatarUrl: string | undefined
                 if (imageId) {
                     try {
-                        const storage = c.get('storage')
-                        const arrayBuffer = await storage.getFilePreview(
+                        // Use admin storage to read any user's avatar regardless of ownership.
+                        const { storage: adminStorage } = await createAdminClient()
+                        const arrayBuffer = await adminStorage.getFilePreview(
                             IMAGES_BUCKET_ID,
                             imageId,
                         )
@@ -404,51 +404,50 @@ const app = new Hono()
             }
         )
 
-        // Activity: Task Created
-        await createActivity({
-            databases,
-            taskId: task.$id,
-            workspaceId,
-            userId: user.$id,
-            type: ActivityType.TASK_CREATED,
-            description: 'created the task',
-        });
-
-        // Notification: Task Assigned
-        if (assigneeId) {
-            const assigneeMember = await databases.getDocument(
-                DATABASE_ID,
-                MEMBERS_ID,
-                assigneeId
-            )
-
-            if (assigneeMember.userId !== user.$id) {
-                await databases.createDocument(
-                    DATABASE_ID,
-                    NOTIFICATIONS_ID,
-                    ID.unique(),
-                    {
-                        userId: assigneeMember.userId,
-                        workspaceId,
-                        title: 'New Task Assigned',
-                        message: `You have been assigned to task: ${name}`,
-                        type: NotificationType.TASK_ASSIGNED,
-                        targetId: task.$id,
-                        isRead: false,
-                    }
-                )
-
-                await sendEmailNotification({
-                    userId: assigneeMember.userId,
-                    title: 'New Task Assigned',
-                    message: `You have been assigned to task: ${name}. Click here to view the task: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${workspaceId}/tasks/${task.$id}`,
-                })
-            }
-        }
+        // Respond immediately — side effects run concurrently after the response
+        // so the Realtime notification event fires without being gated by email.
+        Promise.all([
+            createActivity({
+                databases,
+                taskId: task.$id,
+                workspaceId,
+                userId: user.$id,
+                type: ActivityType.TASK_CREATED,
+                description: 'created the task',
+            }),
+            assigneeId
+                ? databases.getDocument(DATABASE_ID, MEMBERS_ID, assigneeId)
+                    .then((assigneeMember) => {
+                        if (assigneeMember.userId === user.$id) return;
+                        return Promise.all([
+                            databases.createDocument(
+                                DATABASE_ID,
+                                NOTIFICATIONS_ID,
+                                ID.unique(),
+                                {
+                                    userId: assigneeMember.userId,
+                                    workspaceId,
+                                    title: 'New Task Assigned',
+                                    message: `You have been assigned to task: ${name}`,
+                                    type: NotificationType.TASK_ASSIGNED,
+                                    targetId: task.$id,
+                                    isRead: false,
+                                }
+                            ),
+                            sendEmailNotification({
+                                userId: assigneeMember.userId,
+                                title: 'New Task Assigned',
+                                message: `You have been assigned to task: ${name}. Click here to view the task: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${workspaceId}/tasks/${task.$id}`,
+                            }),
+                        ])
+                    })
+                    .catch((err) => console.error('[task:create] side-effect failed:', err))
+                : Promise.resolve(),
+        ]).catch((err) => console.error('[task:create] side-effect failed:', err));
 
         return c.json({
             task
-        })  
+        })
     })
     .patch('/:taskId', sessionMiddleware, zValidator('json', createTaskSchema.partial()), async (c) => {
         const user = c.get('user')
@@ -603,181 +602,122 @@ const app = new Hono()
             }));
         }
 
-        if (activities.length > 0) {
-            await Promise.all(activities);
-        }
+        // Respond immediately after the task document is updated.
+        // All side effects run concurrently in a fire-and-forget block so the
+        // Realtime notification event fires without being gated by email delivery.
+        Promise.all([
+            ...(activities.length > 0 ? activities : []),
+            (async () => {
+                const isStatusChanged = status && status !== existingTask.status
+                const isAssigneeChanged = assigneeId !== undefined && assigneeId !== existingTask.assigneeId
 
-        // Notification: Status Updated or Re-assigned
-        const isStatusChanged = status && status !== existingTask.status
-        const isAssigneeChanged = assigneeId !== undefined && assigneeId !== existingTask.assigneeId
+                if (!isStatusChanged && !isAssigneeChanged) return;
 
-        if (isStatusChanged || isAssigneeChanged) {
-            const currentAssigneeId = existingTask.assigneeId
-            const currentAssigneeMember = currentAssigneeId ? await databases.getDocument(
-                DATABASE_ID,
-                MEMBERS_ID,
-                currentAssigneeId
-            ) : null
+                const currentAssigneeId = existingTask.assigneeId
+                const newAssigneeId = isAssigneeChanged ? assigneeId : null
 
-            const newAssigneeId = isAssigneeChanged ? assigneeId : null
-            const newAssigneeMember = newAssigneeId ? await databases.getDocument(
-                DATABASE_ID,
-                MEMBERS_ID,
-                newAssigneeId
-            ) : null
+                // Fetch both member docs in parallel
+                const [currentAssigneeMember, newAssigneeMember] = await Promise.all([
+                    currentAssigneeId
+                        ? databases.getDocument(DATABASE_ID, MEMBERS_ID, currentAssigneeId)
+                        : Promise.resolve(null),
+                    newAssigneeId
+                        ? databases.getDocument(DATABASE_ID, MEMBERS_ID, newAssigneeId)
+                        : Promise.resolve(null),
+                ])
 
+                const notifJobs: Promise<unknown>[] = []
 
-            let payloadForCurrentAssignee = currentAssigneeMember ? {
-                userId: currentAssigneeMember.userId,
-                workspaceId: existingTask.workspaceId,
-                title: '',
-                message: '',
-                type: '',
-                targetId: task.$id,
-                isRead: false,
-            } : null
-
-            let payloadForNewAssignee = newAssigneeMember ? {
-                userId: newAssigneeMember.userId,
-                workspaceId: existingTask.workspaceId,
-                title: '',
-                message: '',
-                type: '',
-                targetId: task.$id,
-                isRead: false,
-            }: null
-
-            if (isAssigneeChanged && payloadForNewAssignee && newAssigneeMember) {
-                payloadForNewAssignee = {
-                    ...payloadForNewAssignee,
-                    title: 'New Task Assigned',
-                    message: `You have been assigned to task: ${name || existingTask.name}`,
-                    type: NotificationType.TASK_ASSIGNED
-                }
-
-                if (payloadForCurrentAssignee && currentAssigneeMember) {
-                    payloadForCurrentAssignee = {
-                        ...payloadForCurrentAssignee,
-                        title: 'Task Unassigned',
-                        message: `Task "${name || existingTask.name}" has been unassigned from you`,
-                        type: NotificationType.TASK_UNASSIGNED
-                    }
-                }
-
-                // Notification for new assignee
-                await databases.createDocument(
-                    DATABASE_ID,
-                    NOTIFICATIONS_ID,
-                    ID.unique(),
-                    payloadForNewAssignee
-                )
-
-                // Email notification for new assignee
-                await sendEmailNotification({
-                    userId: payloadForNewAssignee.userId,
-                    title: payloadForNewAssignee.title,
-                    message: `${payloadForNewAssignee.message}. Click here to view the task: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${existingTask.workspaceId}/tasks/${task.$id}`,
-                })
-
-
-                // Notification for current assignee
-                if (currentAssigneeMember && currentAssigneeMember.userId !== user.$id && payloadForCurrentAssignee) {
-                    await databases.createDocument(
-                        DATABASE_ID,
-                        NOTIFICATIONS_ID,
-                        ID.unique(),
-                        payloadForCurrentAssignee
+                if (isAssigneeChanged && newAssigneeMember) {
+                    // Notify new assignee
+                    notifJobs.push(
+                        databases.createDocument(DATABASE_ID, NOTIFICATIONS_ID, ID.unique(), {
+                            userId: newAssigneeMember.userId,
+                            workspaceId: existingTask.workspaceId,
+                            title: 'New Task Assigned',
+                            message: `You have been assigned to task: ${name || existingTask.name}`,
+                            type: NotificationType.TASK_ASSIGNED,
+                            targetId: task.$id,
+                            isRead: false,
+                        }),
+                        sendEmailNotification({
+                            userId: newAssigneeMember.userId,
+                            title: 'New Task Assigned',
+                            message: `You have been assigned to task: ${name || existingTask.name}. Click here to view the task: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${existingTask.workspaceId}/tasks/${task.$id}`,
+                        }),
                     )
 
-                    // Email notification for current assignee
-                    await sendEmailNotification({
-                        userId: payloadForCurrentAssignee.userId,
-                        title: payloadForCurrentAssignee.title,
-                        message: `${payloadForCurrentAssignee.message}`,
-                    })
-                }
-            } else if (isAssigneeChanged && !newAssigneeId && payloadForCurrentAssignee && currentAssigneeMember) {
-                // Task was unassigned and not reassigned to anyone
-                payloadForCurrentAssignee = {
-                    ...payloadForCurrentAssignee,
-                    title: 'Task Unassigned',
-                    message: `Task "${name || existingTask.name}" has been unassigned from you`,
-                    type: NotificationType.TASK_UNASSIGNED
-                }
-
-                if (currentAssigneeMember.userId !== user.$id) {
-                    await databases.createDocument(
-                        DATABASE_ID,
-                        NOTIFICATIONS_ID,
-                        ID.unique(),
-                        payloadForCurrentAssignee
+                    // Notify previous assignee they were unassigned
+                    if (currentAssigneeMember && currentAssigneeMember.userId !== user.$id) {
+                        notifJobs.push(
+                            databases.createDocument(DATABASE_ID, NOTIFICATIONS_ID, ID.unique(), {
+                                userId: currentAssigneeMember.userId,
+                                workspaceId: existingTask.workspaceId,
+                                title: 'Task Unassigned',
+                                message: `Task "${name || existingTask.name}" has been unassigned from you`,
+                                type: NotificationType.TASK_UNASSIGNED,
+                                targetId: task.$id,
+                                isRead: false,
+                            }),
+                            sendEmailNotification({
+                                userId: currentAssigneeMember.userId,
+                                title: 'Task Unassigned',
+                                message: `Task "${name || existingTask.name}" has been unassigned from you`,
+                            }),
+                        )
+                    }
+                } else if (isAssigneeChanged && !newAssigneeId && currentAssigneeMember
+                    && currentAssigneeMember.userId !== user.$id) {
+                    // Task unassigned entirely
+                    notifJobs.push(
+                        databases.createDocument(DATABASE_ID, NOTIFICATIONS_ID, ID.unique(), {
+                            userId: currentAssigneeMember.userId,
+                            workspaceId: existingTask.workspaceId,
+                            title: 'Task Unassigned',
+                            message: `Task "${name || existingTask.name}" has been unassigned from you`,
+                            type: NotificationType.TASK_UNASSIGNED,
+                            targetId: task.$id,
+                            isRead: false,
+                        }),
+                        sendEmailNotification({
+                            userId: currentAssigneeMember.userId,
+                            title: 'Task Unassigned',
+                            message: `Task "${name || existingTask.name}" has been unassigned from you`,
+                        }),
                     )
-
-                    await sendEmailNotification({
-                        userId: payloadForCurrentAssignee.userId,
-                        title: payloadForCurrentAssignee.title,
-                        message: `${payloadForCurrentAssignee.message}`,
-                    })
                 }
-            }
-            
-            if (isStatusChanged) {
-                if (!isAssigneeChanged && currentAssigneeMember && payloadForCurrentAssignee) {
-                    payloadForCurrentAssignee = {
-                        ...payloadForCurrentAssignee,
-                        title: 'Task Status Updated',
-                        message: `Task "${name || existingTask.name}" status updated to ${status}`,
-                        type: NotificationType.STATUS_UPDATED
-                    }
 
-                    // Notification for current assignee
-                    if (currentAssigneeMember.userId !== user.$id) {
-                        await databases.createDocument(
-                            DATABASE_ID,
-                            NOTIFICATIONS_ID,
-                            ID.unique(),
-                            payloadForCurrentAssignee
+                if (isStatusChanged) {
+                    const notifyMember = isAssigneeChanged ? newAssigneeMember : currentAssigneeMember
+                    if (notifyMember && notifyMember.userId !== user.$id) {
+                        notifJobs.push(
+                            databases.createDocument(DATABASE_ID, NOTIFICATIONS_ID, ID.unique(), {
+                                userId: notifyMember.userId,
+                                workspaceId: existingTask.workspaceId,
+                                title: 'Task Status Updated',
+                                message: `Task "${name || existingTask.name}" status updated to ${status}`,
+                                type: NotificationType.STATUS_UPDATED,
+                                targetId: task.$id,
+                                isRead: false,
+                            }),
+                            sendEmailNotification({
+                                userId: notifyMember.userId,
+                                title: 'Task Status Updated',
+                                message: `Task "${name || existingTask.name}" status updated to ${status}. Click here to view the task: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${existingTask.workspaceId}/tasks/${task.$id}`,
+                            }),
                         )
-
-                        await sendEmailNotification({
-                            userId: payloadForCurrentAssignee.userId,
-                            title: payloadForCurrentAssignee.title,
-                            message: `${payloadForCurrentAssignee.message}. Click here to view the task: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${existingTask.workspaceId}/tasks/${task.$id}`,
-                        })
-                    }
-                } else if (isAssigneeChanged && payloadForNewAssignee && newAssigneeMember) {
-                    payloadForNewAssignee = {
-                        ...payloadForNewAssignee,
-                        title: 'Task Status Updated',
-                        message: `Task "${name || existingTask.name}" status updated to ${status}`,
-                        type: NotificationType.STATUS_UPDATED
-                    }
-
-                    // Notification for new assignee
-                    if (newAssigneeMember.userId !== user.$id) {
-                        await databases.createDocument(
-                            DATABASE_ID,
-                            NOTIFICATIONS_ID,
-                            ID.unique(),
-                            payloadForNewAssignee
-                        )
-
-                        // Email notification for new assignee
-                        await sendEmailNotification({
-                            userId: payloadForNewAssignee.userId,
-                            title: payloadForNewAssignee.title,
-                            message: `${payloadForNewAssignee.message}. Click here to view the task: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${existingTask.workspaceId}/tasks/${task.$id}`,
-                        })
                     }
                 }
-            }
-        }
+
+                await Promise.all(notifJobs);
+            })(),
+        ]).catch((err) => console.error('[task:update] side-effect failed:', err));
 
         return c.json({
             data: {
                 $id: task.$id
             }
-        })  
+        })
     })
     .post('/bulk-update', sessionMiddleware, zValidator('json',z.object({
         tasks: z.array(
@@ -865,27 +805,24 @@ const app = new Hono()
             })
         )
 
-        await Promise.all(
+        // Respond immediately; fire per-task notifications concurrently in the background
+        Promise.all(
             taskToUpdate.documents.map(async (task) => {
-                const {assigneeId, name, $id } = task
-                const updatedTask = updatedTasks.find((updatedTask) => updatedTask.$id === task.$id)
-                if (assigneeId && assigneeId !== member?.$id && updatedTask?.status !== task.status) {
-                    const assigneeMember = await databases.getDocument(
-                        DATABASE_ID,
-                        MEMBERS_ID,
-                        assigneeId
-                    )
+                const { assigneeId, name, $id } = task
+                const updatedTask = updatedTasks.find((ut) => ut.$id === task.$id)
+                if (!assigneeId || assigneeId === member?.$id || updatedTask?.status === task.status) return;
 
-                    if (!assigneeMember) {
-                        return
-                    }
+                const assigneeMember = await databases.getDocument(DATABASE_ID, MEMBERS_ID, assigneeId)
+                if (!assigneeMember) return;
 
-                    await databases.createDocument(
+                // Notification create and email fire in parallel
+                await Promise.all([
+                    databases.createDocument(
                         DATABASE_ID,
                         NOTIFICATIONS_ID,
                         ID.unique(),
                         {
-                            userId: assigneeMember?.userId,
+                            userId: assigneeMember.userId,
                             workspaceId,
                             title: 'Task Status Updated',
                             message: `Task "${name}" status updated to ${updatedTask?.status}`,
@@ -893,17 +830,15 @@ const app = new Hono()
                             targetId: $id,
                             isRead: false,
                         }
-                    )
-
-                    // Email notification for assignee
-                    await sendEmailNotification({
-                        userId: assigneeMember?.userId,
+                    ),
+                    sendEmailNotification({
+                        userId: assigneeMember.userId,
                         title: 'Task Status Updated',
                         message: `Task "${name}" status updated to ${updatedTask?.status}. Click here to view the task: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${workspaceId}/tasks/${task.$id}`,
-                    })
-                }
+                    }),
+                ])
             })
-        )
+        ).catch((err) => console.error('[task:bulk-update] side-effect failed:', err));
 
         return c.json({
             data: updatedTasks

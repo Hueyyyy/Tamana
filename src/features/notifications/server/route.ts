@@ -17,6 +17,7 @@ const app = new Hono()
       [
         Query.equal('userId', user.$id),
         Query.orderDesc('$createdAt'),
+        Query.limit(50), // cap fetch to 50 most-recent to keep payload small
       ],
     )
 

@@ -25,7 +25,7 @@ function normalizeUrl(url?: string): string | undefined {
 
 const app = new Hono()
   .get('/', sessionMiddleware, zValidator('query', getCommentsSchema), async (c) => {
-    const { users } = await createAdminClient();
+    const { users, storage: adminStorage } = await createAdminClient();
     const databases = c.get('databases');
     const { taskId } = c.req.valid('query');
 
@@ -44,10 +44,21 @@ const app = new Hono()
     const populatedComments = await Promise.all(
       comments.documents.map(async (comment) => {
         const user = await users.get(comment.userId);
+        const imageId = user.prefs?.imageId;
+        let userAvatar: string | undefined;
+        if (imageId) {
+          try {
+            // Use admin storage to read any user's avatar regardless of ownership.
+            const arrayBuffer = await adminStorage.getFilePreview(IMAGES_BUCKET_ID, imageId);
+            userAvatar = `data:image/png;base64,${Buffer.from(arrayBuffer).toString('base64')}`;
+          } catch {
+            // avatar not critical — fall back to initials
+          }
+        }
         return {
           ...comment,
           userName: user.name,
-          userAvatar: user.prefs?.imageId,
+          userAvatar,
           imageUrl: normalizeUrl(comment.imageUrl),
           attachmentUrl: normalizeUrl(comment.attachmentUrl),
         };
@@ -58,11 +69,11 @@ const app = new Hono()
   })
   .get('/attachment/:fileId', sessionMiddleware, async (c) => {
     const { fileId } = c.req.param();
-    const storage = c.get('storage');
+    const { storage: adminStorage } = await createAdminClient();
 
     try {
-      const fileInfo = await storage.getFile(IMAGES_BUCKET_ID, fileId);
-      const arrayBuffer = await storage.getFileView(IMAGES_BUCKET_ID, fileId);
+      const fileInfo = await adminStorage.getFile(IMAGES_BUCKET_ID, fileId);
+      const arrayBuffer = await adminStorage.getFileView(IMAGES_BUCKET_ID, fileId);
 
       c.header('Content-Type', fileInfo.mimeType);
       c.header('Content-Disposition', `inline; filename="${encodeURIComponent(fileInfo.name)}"`);
@@ -152,42 +163,43 @@ const app = new Hono()
       }
     );
 
-    // Notifications for tagged users
-    if (parsedTags && parsedTags.length > 0) {
-      const uniqueTags = Array.from(new Set(parsedTags));
-      await Promise.all(
-        uniqueTags.map(async (taggedUserId) => {
-          if (taggedUserId === user.$id) return; // Don't notify yourself
-
-          await databases.createDocument(
-            DATABASE_ID,
-            NOTIFICATIONS_ID,
-            ID.unique(),
-            {
-              userId: taggedUserId,
-              workspaceId,
-              title: 'Tagged in a comment',
-              message: `${user.name} tagged you in a comment.`,
-              type: NotificationType.COMMENT_TAG,
-              targetId: taskId,
-              isRead: false,
-            }
-          );
-
-          await sendEmailNotification({
-            userId: taggedUserId,
-            title: 'Tagged in a comment',
-            message: `${user.name} tagged you in a comment. Click here to view: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${workspaceId}/tasks/${taskId}`,
-          });
-        })
-      );
-    }
-
     const normalizedComment = {
       ...comment,
       imageUrl: normalizeUrl(comment.imageUrl),
       attachmentUrl: normalizeUrl(comment.attachmentUrl),
     };
+
+    // Return immediately — @mention notifications fire in the background
+    // so tagged users get their Realtime event without blocking the response.
+    if (parsedTags && parsedTags.length > 0) {
+      const uniqueTags = Array.from(new Set(parsedTags));
+      Promise.all(
+        uniqueTags.map(async (taggedUserId) => {
+          if (taggedUserId === user.$id) return;
+          await Promise.all([
+            databases.createDocument(
+              DATABASE_ID,
+              NOTIFICATIONS_ID,
+              ID.unique(),
+              {
+                userId: taggedUserId,
+                workspaceId,
+                title: 'Tagged in a comment',
+                message: `${user.name} tagged you in a comment.`,
+                type: NotificationType.COMMENT_TAG,
+                targetId: taskId,
+                isRead: false,
+              }
+            ),
+            sendEmailNotification({
+              userId: taggedUserId,
+              title: 'Tagged in a comment',
+              message: `${user.name} tagged you in a comment. Click here to view: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${workspaceId}/tasks/${taskId}`,
+            }),
+          ]);
+        })
+      ).catch((err) => console.error('[comment:create] notification side-effect failed:', err));
+    }
 
     return c.json({ data: normalizedComment });
   })
@@ -274,45 +286,45 @@ const app = new Hono()
       }
     );
 
-    // Notifications for newly tagged users
-    if (tags && tags.length > 0) {
-      const existingTags = comment.tags || [];
-      const newTags = tags.filter((tagId: string) => !existingTags.includes(tagId));
-      const uniqueNewTags = Array.from(new Set(newTags));
-
-      await Promise.all(
-        uniqueNewTags.map(async (taggedUserId) => {
-          if (taggedUserId === user.$id) return;
-
-          await databases.createDocument(
-            DATABASE_ID,
-            NOTIFICATIONS_ID,
-            ID.unique(),
-            {
-              userId: taggedUserId,
-              workspaceId: comment.workspaceId,
-              title: 'Tagged in a comment',
-              message: `${user.name} tagged you in a comment.`,
-              type: NotificationType.COMMENT_TAG,
-              targetId: comment.taskId,
-              isRead: false,
-            }
-          );
-
-          await sendEmailNotification({
-            userId: taggedUserId,
-            title: 'Tagged in a comment',
-            message: `${user.name} tagged you in a comment. Click here to view: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${comment.workspaceId}/tasks/${comment.taskId}`,
-          });
-        })
-      );
-    }
-
     const normalizedComment = {
       ...updatedComment,
       imageUrl: normalizeUrl(updatedComment.imageUrl),
       attachmentUrl: normalizeUrl(updatedComment.attachmentUrl),
     };
+
+    // Return immediately — newly-tagged notifications fire in the background.
+    if (tags && tags.length > 0) {
+      const existingTags = comment.tags || [];
+      const newTags = tags.filter((tagId: string) => !existingTags.includes(tagId));
+      const uniqueNewTags = Array.from(new Set(newTags));
+
+      Promise.all(
+        uniqueNewTags.map(async (taggedUserId) => {
+          if (taggedUserId === user.$id) return;
+          await Promise.all([
+            databases.createDocument(
+              DATABASE_ID,
+              NOTIFICATIONS_ID,
+              ID.unique(),
+              {
+                userId: taggedUserId,
+                workspaceId: comment.workspaceId,
+                title: 'Tagged in a comment',
+                message: `${user.name} tagged you in a comment.`,
+                type: NotificationType.COMMENT_TAG,
+                targetId: comment.taskId,
+                isRead: false,
+              }
+            ),
+            sendEmailNotification({
+              userId: taggedUserId,
+              title: 'Tagged in a comment',
+              message: `${user.name} tagged you in a comment. Click here to view: ${process.env.NEXT_PUBLIC_APP_URL}/workspaces/${comment.workspaceId}/tasks/${comment.taskId}`,
+            }),
+          ]);
+        })
+      ).catch((err) => console.error('[comment:update] notification side-effect failed:', err));
+    }
 
     return c.json({ data: normalizedComment });
   });
